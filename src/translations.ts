@@ -190,7 +190,7 @@ export const t = {
     // Header & Actions
     switchLang: 'नेपाली',
     emergencyHelpline: 'Emergency Helpline',
-    cyberBureauPhone: '+977-1-4211304',
+    cyberBureauPhone: '01-4211304',
     cyberBureauEmail: 'cyberbureau@nepalpolice.gov.np',
 
     // Photo / Screenshot Checker

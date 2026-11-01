@@ -31,6 +31,7 @@ import {
   clearRecentChecks,
   HistoryEntry,
 } from '../utils/localHistory';
+import { getUserAuthHeaders, getUserInfoPayload } from '../utils/auth';
 
 interface MessageCheckerProps {
   lang: Language;
@@ -91,8 +92,15 @@ export const MessageChecker: React.FC<MessageCheckerProps> = ({
       // Call backend API first
       const res = await fetch('/api/analyze-message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message.trim(), lang }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
+        body: JSON.stringify({
+          message: message.trim(),
+          lang,
+          userInfo: getUserInfoPayload(),
+        }),
       });
 
       if (res.ok) {

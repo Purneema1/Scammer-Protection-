@@ -28,6 +28,7 @@ import {
   clearRecentChecks,
   HistoryEntry,
 } from '../utils/localHistory';
+import { getUserAuthHeaders, getUserInfoPayload } from '../utils/auth';
 
 interface LinkCheckerProps {
   lang: Language;
@@ -57,8 +58,15 @@ export const LinkChecker: React.FC<LinkCheckerProps> = ({ lang, onOpenRescue }) 
     try {
       const res = await fetch('/api/analyze-link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), lang }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
+        body: JSON.stringify({
+          url: url.trim(),
+          lang,
+          userInfo: getUserInfoPayload(),
+        }),
       });
 
       if (res.ok) {

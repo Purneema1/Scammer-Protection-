@@ -19,6 +19,7 @@ import {
   LifeBuoy,
 } from 'lucide-react';
 import { Language, ChatMessage } from '../types';
+import { getUserAuthHeaders, getUserInfoPayload } from '../utils/auth';
 
 interface CyberDefenseChatProps {
   lang: Language;
@@ -190,11 +191,15 @@ Click any quick prompt below or type your question!`,
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
         body: JSON.stringify({
           message: query,
           history: messages.slice(-6),
           lang,
+          userInfo: getUserInfoPayload(),
         }),
       });
 
@@ -272,71 +277,43 @@ Click any quick prompt below or type your question!`,
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Top Banner / Feature Callout */}
-      <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-cyan-950/60 border border-emerald-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
-              <Bot className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white">
-                  {isNe
-                    ? 'AI साइबर सुरक्षा सल्लाहकार (Gemini AI Chatbot)'
-                    : 'AI Cyber Fraud Defense Specialist'}
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {isNe ? '१००% निःशुल्क' : '100% Free Tier'}
-                </span>
-              </div>
-              <p className="text-xs md:text-sm text-slate-300 mt-1">
-                {isNe
-                  ? 'गुगल जेमिनाई (Gemini 2.5 Flash) द्वारा सञ्चालित — नेपाल साइबर ब्युरो मार्गदर्शन, इसेवा/खल्ती सुरक्षा, र तत्काल उद्धार सुझाव।'
-                  : 'Powered by Gemini 2.5 Flash — Nepal Cyber Bureau guidelines, wallet safety, and urgent defense advice.'}
-              </p>
-            </div>
+    <div className="max-w-4xl mx-auto space-y-4">
+      {/* Sleek Direct Chat Header */}
+      <div className="bg-[#0f172a] border border-emerald-500/30 rounded-2xl p-3.5 sm:p-4 shadow-xl flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 font-bold">
+            AI
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleClearHistory}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition"
-              title={isNe ? 'च्याट खाली गर्नुहोस्' : 'Reset Chat'}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{isNe ? 'च्याट रिसेट' : 'Clear Chat'}</span>
-            </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-white">
+                {isNe ? 'AI साइबर सुरक्षा सल्लाहकार (Gemini AI Chat)' : 'AI Cyber Defense Specialist'}
+              </h2>
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {isNe ? 'सक्रिय' : 'Online'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 hidden sm:block">
+              {isNe ? 'नेपाल साइबर अपराध तथा अनलाइन ठगी नियन्त्रण AI • १००% निःशुल्क' : 'Nepal Cyber Intelligence & Scam Defense AI • 100% Free'}
+            </p>
           </div>
         </div>
 
-        {/* Quick Emergency Action Buttons */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-400 font-medium">
-            {isNe ? 'तत्काल आवश्यक परेमा:' : 'Quick shortcuts:'}
-          </span>
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onNavigateToRescue}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 transition font-medium"
+            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-300 bg-rose-950/60 border border-rose-800/60 hover:bg-rose-900/60 transition cursor-pointer"
           >
-            <LifeBuoy className="w-3.5 h-3.5" />
-            {isNe ? 'पैसा पठाइसकेको भए (Emergency Rescue)' : "I'm Scammed (Rescue SOS)"}
+            <span>{isNe ? '🆘 ठगी उद्दार' : 'SOS Rescue'}</span>
           </button>
           <button
-            onClick={onNavigateToComplaint}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 transition font-medium"
+            onClick={handleClearHistory}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition cursor-pointer"
+            title={isNe ? 'च्याट खाली गर्नुहोस्' : 'Reset Chat'}
           >
-            <FileText className="w-3.5 h-3.5" />
-            {isNe ? 'साइबर ब्युरो उजुरी मस्यौदा' : 'Police Complaint Drafter'}
+            <span>{isNe ? 'च्याट रिसेट' : 'Clear Chat'}</span>
           </button>
-          <a
-            href="tel:014212929"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white transition"
-          >
-            <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Cyber Bureau: ०१-४२१२९२९</span>
-          </a>
         </div>
       </div>
 

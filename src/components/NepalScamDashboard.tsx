@@ -1,17 +1,5 @@
 import React, { useState } from 'react';
 import {
-  TrendingUp,
-  AlertTriangle,
-  PieChart as PieChartIcon,
-  Calendar,
-  DollarSign,
-  ShieldAlert,
-  ArrowUpRight,
-  Info,
-  Clock,
-  Sparkles,
-} from 'lucide-react';
-import {
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -27,6 +15,7 @@ import {
 } from 'recharts';
 import { Language } from '../types';
 import { toNepaliDigits, formatNumber, formatPercent } from '../utils/numberFormat';
+import { BANNERS } from '../constants/toolImages';
 
 interface NepalScamDashboardProps {
   lang: Language;
@@ -124,6 +113,16 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
 
   return (
     <section className="rounded-3xl bg-gradient-to-b from-[#101b33] via-[#0d162a] to-[#0a1122] border border-cyan-900/40 shadow-2xl p-4 sm:p-6 space-y-6 relative overflow-hidden">
+      {/* Visual cyber intelligence backdrop image */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-10">
+        <img
+          src={BANNERS.stats}
+          alt=""
+          className="w-full h-full object-cover filter blur-[2px]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#101b33]/90 via-[#0d162a]/95 to-[#0a1122]" />
+      </div>
+
       {/* Background glow effects */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-10 w-80 h-80 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -132,7 +131,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/50 text-[11px] font-bold text-cyan-300">
-            <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
             <span>{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
           </div>
@@ -150,37 +148,37 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
           </p>
         </div>
 
-        {/* View Switcher Pills */}
-        <div className="flex items-center gap-1 p-1 bg-[#090f1d] border border-slate-800 rounded-xl self-start lg:self-auto shrink-0">
+        {/* View Switcher Pills - All 3 exactly identical in size */}
+        <div className="grid grid-cols-3 gap-1 p-1 bg-[#090f1d] border border-slate-800 rounded-xl w-full sm:w-[480px]">
           <button
             onClick={() => setActiveView('types')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+            className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
               activeView === 'types'
                 ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white bg-slate-900/60'
             }`}
           >
-            {isNe ? '📊 ठगीका प्रकार (Types)' : '📊 Scam Types'}
+            <span className="truncate">{isNe ? 'ठगीका प्रकार' : 'Scam Types'}</span>
           </button>
           <button
             onClick={() => setActiveView('monthly')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+            className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
               activeView === 'monthly'
                 ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white bg-slate-900/60'
             }`}
           >
-            {isNe ? '📈 मासिक दर (Monthly Trend)' : '📈 Monthly Frequency'}
+            <span className="truncate">{isNe ? 'मासिक दर' : 'Monthly Frequency'}</span>
           </button>
           <button
             onClick={() => setActiveView('channels')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+            className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
               activeView === 'channels'
                 ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white bg-slate-900/60'
             }`}
           >
-            {isNe ? '💳 माध्यम (Loss Channels)' : '💳 Payment Medium'}
+            <span className="truncate">{isNe ? 'भुक्तानी माध्यम' : 'Payment Medium'}</span>
           </button>
         </div>
       </div>
@@ -190,7 +188,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
         <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
           <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
             <span>{isNe ? 'वार्षिक कुल उजुरी' : 'Reported Cases (Year)'}</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-white">
             {isNe ? '२१,७५०+' : '21,750+'}
@@ -203,7 +200,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
         <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
           <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
             <span>{isNe ? 'अनुमानित वित्तीय क्षति' : 'Estimated Loss'}</span>
-            <DollarSign className="w-3.5 h-3.5 text-rose-400" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-rose-300">
             {isNe ? 'रु. १.३८ अर्ब+' : 'NPR 1.38 Billion+'}
@@ -216,7 +212,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
         <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
           <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
             <span>{isNe ? 'सबैभन्दा जोखिमपूर्ण ठगी' : '#1 Prevalent Scam'}</span>
-            <ShieldAlert className="w-3.5 h-3.5 text-cyan-400" />
           </div>
           <div className="text-base sm:text-lg font-black text-cyan-300 truncate">
             {isNe ? 'सोसल सपिङ र अग्रिम भुक्तानी' : 'Shopping & Advance Pay'}
@@ -229,7 +224,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
         <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
           <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
             <span>{isNe ? 'गोल्डेन आवर रिकभरी' : 'Golden Hour Window'}</span>
-            <Clock className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-emerald-300">
             {isNe ? '२ घण्टा भित्र' : 'Within 2 Hours'}
@@ -247,7 +241,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                  <PieChartIcon className="w-4 h-4 text-cyan-400" />
                   <span>
                     {isNe
                       ? 'नेपालमा रिपोर्ट गरिएका ठगीका मुख्य प्रकारहरू (प्रतिशत र घटना सङ्ख्या)'
@@ -352,7 +345,7 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
                       </span>
                     </div>
                   </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 shrink-0 ml-1" />
+                  <span className="text-xs text-slate-500 group-hover:text-cyan-400 shrink-0 ml-1 font-bold">→</span>
                 </div>
               ))}
             </div>
@@ -364,7 +357,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-cyan-400" />
                   <span>
                     {isNe
                       ? 'नेपालमा मासिक साइबर ठगी उजुरीको प्रवृत्ति (Monthly Incidents & Loss)'
@@ -408,10 +400,10 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
                           <div className="bg-[#0b1324] border border-cyan-700/60 p-3 rounded-xl shadow-2xl text-xs space-y-1">
                             <p className="font-bold text-white">{label}</p>
                             <p className="text-cyan-300 font-semibold">
-                              {isNe ? 'उजुरी सङ्ख्या:' : 'Complaints:'} {isNe ? toNepaliDigits(payload[0]?.value?.toLocaleString()) : payload[0]?.value?.toLocaleString()}
+                              {isNe ? 'उजुरी सङ्ख्या:' : 'Complaints:'} {isNe ? toNepaliDigits(String(payload[0]?.value ?? '')) : String(payload[0]?.value ?? '')}
                             </p>
                             <p className="text-rose-400">
-                              {isNe ? 'आर्थिक क्षति:' : 'Estimated Loss:'} {isNe ? `रु. ${toNepaliDigits(payload[1]?.value)} करोड` : `NPR ${payload[1]?.value} Crore`}
+                              {isNe ? 'आर्थिक क्षति:' : 'Estimated Loss:'} {isNe ? `रु. ${toNepaliDigits(String(payload[1]?.value ?? ''))} करोड` : `NPR ${payload[1]?.value} Crore`}
                             </p>
                           </div>
                         );
@@ -459,7 +451,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
                   <span>
                     {isNe
                       ? 'ठगीमा रकम गुम्ने प्रमुख भुक्तानी माध्यमहरू (Channels)'
@@ -499,7 +490,7 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value) => [isNe ? `${toNepaliDigits(value)}% हिस्सा` : `${value}% Share`, '']}
+                      formatter={(value) => [isNe ? `${toNepaliDigits(String(value ?? ''))}% हिस्सा` : `${value}% Share`, '']}
                       contentStyle={{
                         backgroundColor: '#0b1324',
                         borderColor: '#0284c7',
@@ -516,7 +507,7 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
               <div className="space-y-2.5">
                 <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs">
                   <span className="font-bold text-cyan-300 block mb-0.5">
-                    {isNe ? '💡 डिजिटल वालेट सावधानी (eSewa / Khalti)' : '💡 Digital Wallet Alert'}
+                    {isNe ? 'डिजिटल वालेट सावधानी (eSewa / Khalti)' : 'Digital Wallet Alert'}
                   </span>
                   <p className="text-slate-300">
                     {isNe
@@ -527,7 +518,7 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
 
                 <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/40 text-xs">
                   <span className="font-bold text-rose-300 block mb-0.5">
-                    {isNe ? '🚨 ठगीमा परिसकेपछि (First 2 Hours)' : '🚨 Golden Window Action'}
+                    {isNe ? 'ठगीमा परिसकेपछि (First 2 Hours)' : 'Golden Window Action'}
                   </span>
                   <p className="text-slate-300">
                     {isNe
@@ -543,7 +534,6 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
         {/* Action Prompt beneath dashboard */}
         <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-            <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span>
               {isNe
                 ? 'तपाईंलाई आएको कुनै मेसेज, लिंक, फोटो वा अफर शंकास्पद लागेको छ?'
@@ -556,19 +546,19 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
               onClick={() => onSelectScamType && onSelectScamType('message')}
               className="px-3 py-1.5 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-600/50 font-semibold cursor-pointer active:scale-95 transition-all text-xs"
             >
-              {isNe ? '💬 मेसेज जाँच्नुहोस्' : '💬 Check Message'}
+              {isNe ? 'मेसेज जाँच्नुहोस्' : 'Check Message'}
             </button>
             <button
               onClick={() => onSelectScamType && onSelectScamType('shopping')}
               className="px-3 py-1.5 rounded-lg bg-teal-600/30 hover:bg-teal-600/50 text-teal-300 border border-teal-600/50 font-semibold cursor-pointer active:scale-95 transition-all text-xs"
             >
-              {isNe ? '🛍️ किनमेल अफर जाँच्नुहोस्' : '🛍️ Check Shopping'}
+              {isNe ? 'किनमेल अफर जाँच्नुहोस्' : 'Check Shopping'}
             </button>
             <button
               onClick={() => onSelectScamType && onSelectScamType('rescue')}
               className="px-3 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-600/50 font-semibold cursor-pointer active:scale-95 transition-all text-xs"
             >
-              {isNe ? '🆘 ठगी उद्धार' : '🆘 Emergency Rescue'}
+              {isNe ? 'ठगी उद्धार' : 'Emergency Rescue'}
             </button>
           </div>
         </div>

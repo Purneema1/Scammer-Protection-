@@ -33,6 +33,8 @@ import {
   clearRecentChecks,
   HistoryEntry,
 } from '../utils/localHistory';
+import { getUserAuthHeaders, getUserInfoPayload } from '../utils/auth';
+import { toNepaliDigits } from '../utils/numberFormat';
 
 interface ShoppingCheckerProps {
   lang: Language;
@@ -92,15 +94,22 @@ export const ShoppingChecker: React.FC<ShoppingCheckerProps> = ({
     try {
       const res = await fetch('/api/analyze-shopping-scam', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: form, lang }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
+        body: JSON.stringify({
+          input: form,
+          lang,
+          userInfo: getUserInfoPayload(),
+        }),
       });
 
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
           setResult(json.data);
-          const preview = `${form.productName} (रु. ${form.advertisedPrice}) - ${form.sellerPlatform}`;
+          const preview = `${form.productName} (${isNe ? 'रु.' : 'Rs.'} ${form.advertisedPrice}) - ${form.sellerPlatform}`;
           saveRecentCheck('shopping', {
             preview,
             riskLevel: json.data.riskLevel,
@@ -121,7 +130,7 @@ export const ShoppingChecker: React.FC<ShoppingCheckerProps> = ({
       // Local heuristic fallback
       const local = analyzeShoppingScamClient(form, lang);
       setResult(local);
-      const preview = `${form.productName} (रु. ${form.advertisedPrice}) - ${form.sellerPlatform}`;
+      const preview = `${form.productName} (${isNe ? 'रु.' : 'Rs.'} ${form.advertisedPrice}) - ${form.sellerPlatform}`;
       saveRecentCheck('shopping', {
         preview,
         riskLevel: local.riskLevel,
@@ -269,18 +278,18 @@ Disclaimer: ${result.disclaimer}`;
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-xs">
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-[10px] text-slate-400 block">{isNe ? 'विज्ञापन मूल्य' : 'Offered Price'}</span>
-                <span className="text-cyan-300 font-bold">रु. {advP.toLocaleString()}</span>
+                <span className="text-cyan-300 font-bold">{isNe ? `रु. ${toNepaliDigits(advP.toLocaleString())}` : `Rs. ${advP.toLocaleString()}`}</span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-[10px] text-slate-400 block">{isNe ? 'बजार मूल्य' : 'Market Price'}</span>
-                <span className="text-slate-300">{marketP > 0 ? `रु. ${marketP.toLocaleString()}` : 'N/A'}</span>
+                <span className="text-slate-300">{marketP > 0 ? (isNe ? `रु. ${toNepaliDigits(marketP.toLocaleString())}` : `Rs. ${marketP.toLocaleString()}`) : 'N/A'}</span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-[10px] text-slate-400 block">{isNe ? 'अग्रिम माग' : 'Advance Demanded'}</span>
                 <span className={depositP > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400'}>
-                  {depositP > 0 ? `रु. ${depositP.toLocaleString()}` : 'रु. ० (None)'}
+                  {depositP > 0 ? (isNe ? `रु. ${toNepaliDigits(depositP.toLocaleString())}` : `Rs. ${depositP.toLocaleString()}`) : (isNe ? 'रु. ० (छैन)' : 'Rs. 0 (None)')}
                 </span>
               </div>
 

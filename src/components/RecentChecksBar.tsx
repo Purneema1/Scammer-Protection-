@@ -13,6 +13,7 @@ import {
 import { CheckerType, HistoryEntry, formatRelativeTime } from '../utils/localHistory';
 import { Language, RiskLevel } from '../types';
 import { t } from '../translations';
+import { toNepaliDigits } from '../utils/numberFormat';
 
 interface RecentChecksBarProps<TInput = any, TResult = any> {
   type: CheckerType;
@@ -38,19 +39,20 @@ export const RecentChecksBar = <TInput, TResult>({
   }
 
   const getRiskBadge = (level: RiskLevel, score: number) => {
+    const formattedScore = isNe ? toNepaliDigits(score) : score;
     switch (level) {
       case 'HIGH_RISK':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
             <ShieldAlert className="w-3 h-3 text-rose-400" />
-            <span>{isNe ? 'उच्च जोखिम' : 'High Risk'} {score}%</span>
+            <span>{isNe ? 'उच्च जोखिम' : 'High Risk'} {formattedScore}%</span>
           </span>
         );
       case 'CAUTION':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
             <AlertTriangle className="w-3 h-3 text-amber-400" />
-            <span>{isNe ? 'सावधानी' : 'Caution'} {score}%</span>
+            <span>{isNe ? 'सावधानी' : 'Caution'} {formattedScore}%</span>
           </span>
         );
       case 'LOW_RISK':
@@ -58,7 +60,7 @@ export const RecentChecksBar = <TInput, TResult>({
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>{isNe ? 'कम जोखिम' : 'Low Risk'} {score}%</span>
+            <span>{isNe ? 'कम जोखिम' : 'Low Risk'} {formattedScore}%</span>
           </span>
         );
     }

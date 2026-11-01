@@ -508,7 +508,10 @@ export function getCustomerChecks(filter?: {
         c.inputSummary.toLowerCase().includes(q) ||
         (c.scamType && c.scamType.toLowerCase().includes(q)) ||
         c.customerSession.toLowerCase().includes(q) ||
-        c.solutionSummary.toLowerCase().includes(q)
+        c.solutionSummary.toLowerCase().includes(q) ||
+        (c.userName && c.userName.toLowerCase().includes(q)) ||
+        (c.userEmail && c.userEmail.toLowerCase().includes(q)) ||
+        (c.userPhone && c.userPhone.toLowerCase().includes(q))
     );
   }
   const limit = filter?.limit || 100;

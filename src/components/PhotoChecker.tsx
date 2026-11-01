@@ -28,6 +28,7 @@ import {
   clearRecentChecks,
   HistoryEntry,
 } from '../utils/localHistory';
+import { getUserAuthHeaders, getUserInfoPayload } from '../utils/auth';
 import { sampleScreenshots } from '../data/samples';
 import { t } from '../translations';
 import { ImageAnalysisResult, Language } from '../types';
@@ -146,11 +147,15 @@ export const PhotoChecker: React.FC<PhotoCheckerProps> = ({
     try {
       const response = await fetch('/api/analyze-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
         body: JSON.stringify({
           imageBase64,
           notes,
           lang,
+          userInfo: getUserInfoPayload(),
         }),
       });
 

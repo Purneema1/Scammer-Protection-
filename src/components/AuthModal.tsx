@@ -74,21 +74,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setMode(newMode);
   };
 
-  // 1-Click Demo Logins for fast testing
-  const handleQuickLogin = (demoType: 'citizen_ramesh' | 'citizen_umesh' | 'admin_inspector') => {
-    setErrorMsg('');
-    if (demoType === 'citizen_ramesh') {
-      setEmail('ramesh@example.com');
-      setPassword('Nepal@123');
-    } else if (demoType === 'citizen_umesh') {
-      setEmail('umeshprovidhy@gmail.com');
-      setPassword('Nepal@123');
-    } else if (demoType === 'admin_inspector') {
-      setEmail('admin@scamdefense.gov.np');
-      setPassword('admin123');
-    }
-  };
-
   // Submit Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -370,36 +355,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span>{loading ? (isNe ? 'लगइन हुँदैछ...' : 'Signing in...') : (isNe ? 'साइन इन गर्नुहोस्' : 'Sign In')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-
-            {/* Quick Demo Logins strip */}
-            <div className="pt-2 border-t border-slate-800/80">
-              <span className="text-[11px] text-slate-400 block mb-2 font-medium">
-                {isNe ? '⚡ द्रुत परीक्षण खाता (Quick 1-Click Demo Accounts):' : '⚡ Quick 1-Click Demo Accounts:'}
-              </span>
-              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('citizen_umesh')}
-                  className="p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 text-left truncate cursor-pointer transition-colors"
-                >
-                  👤 उमेश शर्मा (Citizen)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('citizen_ramesh')}
-                  className="p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 text-left truncate cursor-pointer transition-colors"
-                >
-                  👤 रमेश अधिकारी (Citizen)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('admin_inspector')}
-                  className="col-span-2 p-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/60 text-left truncate cursor-pointer transition-colors font-medium"
-                >
-                  🛡️ इन्स्पेक्टर सन्तोष थापा (Cyber Bureau Admin)
-                </button>
-              </div>
-            </div>
 
             {/* Switch to Signup */}
             <div className="text-center pt-2 text-xs text-slate-400">

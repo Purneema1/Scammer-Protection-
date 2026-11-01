@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { t } from '../translations';
 import { Language } from '../types';
+import { BANNERS } from '../constants/toolImages';
 
 interface EmergencyRescueProps {
   lang: Language;
@@ -235,6 +236,52 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* High-Impact Visual Emergency Rescue Banner */}
+      <div className="relative rounded-3xl overflow-hidden border border-rose-900/60 shadow-2xl bg-gradient-to-r from-[#1c0d16] via-[#200f1c] to-[#120810]">
+        <div className="absolute inset-0 z-0">
+          <img
+            src={BANNERS.rescue}
+            alt="Emergency Scam Rescue Banner"
+            className="w-full h-full object-cover opacity-35 filter brightness-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#16060e] via-[#1a0812]/80 to-transparent" />
+        </div>
+
+        <div className="relative z-10 p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-600/30 border border-rose-500/50 text-rose-300 text-xs font-bold tracking-wide">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+              <span>{isNe ? 'तत्काल साइबर सुरक्षा उद्धार' : 'Urgent Cyber Fraud Rescue'}</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              {isNe ? 'ठगीमा परेपछि चाल्नुपर्ने पहिलो कदम' : 'First Response Action Plan for Scam Victims'}
+            </h2>
+            <p className="text-xs sm:text-sm text-rose-100/80 leading-relaxed">
+              {isNe
+                ? 'समय निकै महत्त्वपूर्ण छ! रकम ट्रान्सफर भएको पहिलो ३० मिनेटभित्र बैंक वा वालेटलाई खाता फ्रिज गर्न अनुरोध गर्नुहोस्।'
+                : 'Speed is critical. Freeze accounts within the first 30 minutes to maximize fund recovery chances.'}
+            </p>
+          </div>
+
+          <div className="flex sm:flex-col items-center gap-2 shrink-0">
+            <a
+              href="tel:01-4211304"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm text-center shadow-lg shadow-rose-900/40 transition-all flex items-center justify-center gap-2"
+            >
+              <PhoneCall className="w-4 h-4" />
+              <span>{isNe ? 'साइबर ब्युरो: ०१-४२११३०४' : 'Bureau: 01-4211304'}</span>
+            </a>
+            <button
+              onClick={onOpenComplaint}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-semibold text-xs sm:text-sm text-center transition-colors flex items-center justify-center gap-2"
+            >
+              <FileText className="w-4 h-4 text-emerald-400" />
+              <span>{isNe ? 'उजुरी मस्यौदा तयार गर्नुहोस्' : 'Draft Police Complaint'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Recovery Scam Warning Box - Prominent */}
       <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-950/80 via-red-950/60 to-rose-950/80 border-2 border-rose-600/70 shadow-2xl animate-pulse-slow">
         <div className="flex items-start gap-3">
@@ -402,7 +449,9 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              भोटाहिटी, काठमाडौँ (नेपालभरका अनलाइन ठगी तथा साइबर अपराधको अनुसन्धान केन्द्र)
+              {isNe
+                ? 'भोटाहिटी, काठमाडौँ (नेपालभरका अनलाइन ठगी तथा साइबर अपराधको अनुसन्धान केन्द्र)'
+                : 'Bhotahity, Kathmandu (Nepal Cyber Crime Bureau Headquarters)'}
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <a
@@ -410,14 +459,14 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-mono font-bold"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
-                ०१-४२११३०४
+                {isNe ? '०१-४२११३०४' : '01-4211304'}
               </a>
               <a
                 href="mailto:cyberbureau@nepalpolice.gov.np"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
               >
                 <Mail className="w-3.5 h-3.5" />
-                Email Bureau
+                {isNe ? 'इमेल गर्नुहोस्' : 'Email Bureau'}
               </a>
             </div>
           </div>
@@ -433,7 +482,9 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              वालेटबाट अनधिकृत रकम स्थानान्तरण भएको अवस्थामा तत्काल खाता रोक्का गर्न सम्पर्क गर्नुहोस्।
+              {isNe
+                ? 'वालेटबाट अनधिकृत रकम स्थानान्तरण भएको अवस्थामा तत्काल खाता रोक्का गर्न सम्पर्क गर्नुहोस्।'
+                : 'Contact immediately to place an emergency freeze on compromised wallet accounts.'}
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs">
               <a

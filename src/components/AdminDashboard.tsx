@@ -1,1267 +1,1151 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Shield,
-  Lock,
-  Unlock,
-  Search,
-  Filter,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Clock,
-  Trash2,
-  Download,
-  MessageSquare,
-  Link as LinkIcon,
-  ShoppingBag,
-  Camera,
-  Mic,
-  Bot,
-  Star,
-  Users,
-  Eye,
+  Menu,
   X,
-  Send,
-  RefreshCw,
   FileText,
-  LifeBuoy,
-  PhoneCall,
-  ChevronRight,
-  TrendingUp,
+  Video,
+  Image as ImageIcon,
+  Save,
+  RotateCcw,
+  Plus,
+  Trash2,
+  Edit3,
+  Check,
+  ArrowLeft,
+  ExternalLink,
+  Play,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
+import { Language } from '../types';
 import {
-  Language,
-  CustomerCheckRecord,
-  CustomerFeedback,
-  CustomerIssue,
-  CustomerComment,
-  AdminStats,
-} from '../types';
+  getAppContentSettings,
+  saveAppContentSettings,
+  resetAppContentSettings,
+  AppContentSettings,
+} from '../utils/contentStorage';
+import {
+  getAppMediaSettings,
+  saveAppMediaSettings,
+  resetAppMediaSettings,
+  getAppVideos,
+  saveAppVideos,
+  addOrUpdateVideo,
+  deleteVideo,
+  resetAppVideos,
+  AppMediaSettings,
+  ScamVideoItem,
+} from '../utils/mediaStorage';
+import { TOOL_PHOTOS } from '../constants/toolImages';
 
 interface AdminDashboardProps {
   lang: Language;
   onNavigateHome: () => void;
 }
 
+type AdminSection = 'content' | 'video' | 'image';
+
 export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
   const isNe = lang === 'ne';
 
-  // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('scam_admin_auth') === 'true';
+  // Active section & hamburger drawer state
+  const [activeSection, setActiveSection] = useState<AdminSection>('content');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  // Content state
+  const [contentForm, setContentForm] = useState<AppContentSettings>(() => getAppContentSettings());
+
+  // Media (Images) state
+  const [mediaSettings, setMediaSettings] = useState<AppMediaSettings>(() => getAppMediaSettings());
+
+  // Videos state
+  const [videoList, setVideoList] = useState<ScamVideoItem[]>(() => getAppVideos());
+  const [editingVideo, setEditingVideo] = useState<ScamVideoItem | null>(null);
+  const [isAddingVideo, setIsAddingVideo] = useState(false);
+
+  // Video editor modal form
+  const [videoForm, setVideoForm] = useState<Partial<ScamVideoItem>>({
+    titleNe: '',
+    titleEn: '',
+    descNe: '',
+    descEn: '',
+    youtubeId: '',
+    category: 'wallet',
+    duration: '०४:००',
+    thumbnail: '',
   });
-  const [pinInput, setPinInput] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'checks' | 'feedback' | 'issues' | 'comments'>('checks');
-
-  // Stats
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loadingStats, setLoadingStats] = useState(false);
-
-  // Checks State
-  const [checks, setChecks] = useState<CustomerCheckRecord[]>([]);
-  const [loadingChecks, setLoadingChecks] = useState(false);
-  const [selectedTool, setSelectedTool] = useState<string>('all');
-  const [selectedRisk, setSelectedRisk] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCheckForModal, setSelectedCheckForModal] = useState<CustomerCheckRecord | null>(null);
-
-  // Feedback State
-  const [feedbacks, setFeedbacks] = useState<CustomerFeedback[]>([]);
-  const [loadingFeedback, setLoadingFeedback] = useState(false);
-  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
-
-  // Issues State
-  const [issues, setIssues] = useState<CustomerIssue[]>([]);
-  const [loadingIssues, setLoadingIssues] = useState(false);
-  const [selectedIssueForEdit, setSelectedIssueForEdit] = useState<CustomerIssue | null>(null);
-  const [editIssueStatus, setEditIssueStatus] = useState<CustomerIssue['status']>('OPEN');
-  const [editIssueSeverity, setEditIssueSeverity] = useState<CustomerIssue['severity']>('HIGH');
-  const [editAdminNotes, setEditAdminNotes] = useState('');
-  const [editAdminReply, setEditAdminReply] = useState('');
-  const [savingIssue, setSavingIssue] = useState(false);
-
-  // Comments State
-  const [comments, setComments] = useState<CustomerComment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [commentReplyMap, setCommentReplyMap] = useState<Record<string, string>>({});
-
-  // Load Initial Data once authenticated
+  // Load latest settings on mount
   useEffect(() => {
-    if (isAuthenticated) {
-      loadStats();
-      loadChecks();
-      loadFeedbacks();
-      loadIssues();
-      loadComments();
+    setContentForm(getAppContentSettings());
+    setMediaSettings(getAppMediaSettings());
+    setVideoList(getAppVideos());
+  }, []);
+
+  const showToast = (message: string) => {
+    setSaveToast(message);
+    setTimeout(() => {
+      setSaveToast(null);
+    }, 3500);
+  };
+
+  // Helper to extract YouTube video ID if full URL is entered
+  const extractYouTubeId = (urlOrId: string): string => {
+    const cleaned = urlOrId.trim();
+    if (cleaned.length === 11 && !cleaned.includes('/') && !cleaned.includes('?')) {
+      return cleaned;
     }
-  }, [isAuthenticated]);
-
-  const handlePinSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setIsVerifying(true);
-    setAuthError('');
-
-    try {
-      const res = await fetch('/api/admin/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pinInput.trim() }),
-      });
-      const data = await res.json();
-      if (data.success && data.authorized) {
-        setIsAuthenticated(true);
-        sessionStorage.setItem('scam_admin_auth', 'true');
-      } else {
-        setAuthError(data.error || (isNe ? 'गलत पिन कोड' : 'Invalid PIN'));
-      }
-    } catch {
-      setAuthError(isNe ? 'प्रमाणीकरण असफल' : 'Authentication failed');
-    } finally {
-      setIsVerifying(false);
-    }
+    const match = cleaned.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? match[1] : cleaned;
   };
 
-  const handleQuickDemoUnlock = () => {
-    setPinInput('admin123');
-    setIsAuthenticated(true);
-    sessionStorage.setItem('scam_admin_auth', 'true');
+  // ----------------------------------------------------
+  // CONTENT MANAGEMENT HANDLERS
+  // ----------------------------------------------------
+  const handleSaveContent = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveAppContentSettings(contentForm);
+    showToast(isNe ? 'सामग्री सफलतापूर्वक सुरक्षित गरियो!' : 'App content saved successfully!');
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('scam_admin_auth');
-  };
-
-  const loadStats = async () => {
-    setLoadingStats(true);
-    try {
-      const res = await fetch('/api/admin/stats');
-      const data = await res.json();
-      if (data.stats) setStats(data.stats);
-    } catch {
-      // silent
-    } finally {
-      setLoadingStats(false);
+  const handleResetContent = () => {
+    if (window.confirm(isNe ? 'के तपाईं सबै सामग्री पूर्वनिर्धारितमा फर्काउन चाहनुहुन्छ?' : 'Reset all content to defaults?')) {
+      const def = resetAppContentSettings();
+      setContentForm(def);
+      showToast(isNe ? 'सामग्री पूर्वनिर्धारितमा फर्कियो!' : 'Content reset to default settings!');
     }
   };
 
-  const loadChecks = async () => {
-    setLoadingChecks(true);
-    try {
-      const params = new URLSearchParams();
-      if (selectedTool !== 'all') params.append('toolType', selectedTool);
-      if (selectedRisk !== 'all') params.append('riskLevel', selectedRisk);
-      if (searchQuery.trim()) params.append('search', searchQuery.trim());
+  // ----------------------------------------------------
+  // IMAGE MANAGEMENT HANDLERS
+  // ----------------------------------------------------
+  const handleBannerUrlChange = (key: keyof AppMediaSettings['banners'], val: string) => {
+    setMediaSettings((prev) => ({
+      ...prev,
+      banners: {
+        ...prev.banners,
+        [key]: val,
+      },
+    }));
+  };
 
-      const res = await fetch(`/api/admin/checks?${params.toString()}`);
-      const data = await res.json();
-      if (data.checks) setChecks(data.checks);
-    } catch {
-      // silent
-    } finally {
-      setLoadingChecks(false);
+  const handleToolPhotoChange = (toolKey: string, val: string) => {
+    setMediaSettings((prev) => ({
+      ...prev,
+      tools: {
+        ...prev.tools,
+        [toolKey]: val,
+      },
+    }));
+  };
+
+  const handleSaveImages = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveAppMediaSettings(mediaSettings);
+    showToast(isNe ? 'सबै तस्विरहरू सुरक्षित गरियो!' : 'All images saved successfully!');
+  };
+
+  const handleResetImages = () => {
+    if (window.confirm(isNe ? 'के तपाईं सबै तस्विरहरू पूर्वनिर्धारितमा फर्काउन चाहनुहुन्छ?' : 'Reset all images to default?')) {
+      const def = resetAppMediaSettings();
+      setMediaSettings(def);
+      showToast(isNe ? 'तस्विरहरू पूर्वनिर्धारितमा फर्कियो!' : 'Images reset to default!');
     }
   };
 
-  const handleDeleteCheck = async (id: string) => {
-    if (!confirm(isNe ? 'के यो चेक लग मेटाउन चाहनुहुन्छ?' : 'Delete this check log?')) return;
-    try {
-      await fetch(`/api/admin/checks/${id}`, { method: 'DELETE' });
-      setChecks((prev) => prev.filter((c) => c.id !== id));
-      loadStats();
-    } catch {
-      alert('Failed to delete');
+  // ----------------------------------------------------
+  // VIDEO MANAGEMENT HANDLERS
+  // ----------------------------------------------------
+  const handleOpenAddVideo = () => {
+    setEditingVideo(null);
+    setVideoForm({
+      id: `vid-${Date.now()}`,
+      titleNe: '',
+      titleEn: '',
+      descNe: '',
+      descEn: '',
+      youtubeId: '',
+      category: 'wallet',
+      duration: '०४:००',
+      thumbnail: '',
+    });
+    setIsAddingVideo(true);
+  };
+
+  const handleOpenEditVideo = (v: ScamVideoItem) => {
+    setEditingVideo(v);
+    setVideoForm({ ...v });
+    setIsAddingVideo(true);
+  };
+
+  const handleDeleteVideo = (id: string) => {
+    if (window.confirm(isNe ? 'के तपाईं यो भिडियो हटाउन चाहनुहुन्छ?' : 'Delete this video?')) {
+      const updated = deleteVideo(id);
+      setVideoList(updated);
+      showToast(isNe ? 'भिडियो हटाइयो!' : 'Video removed successfully!');
     }
   };
 
-  const handleClearAllChecks = async () => {
-    if (!confirm(isNe ? 'सबै ग्राहक चेक लगहरू खाली गर्न निश्चित हुनुहुन्छ?' : 'Clear ALL check logs?')) return;
-    try {
-      await fetch('/api/admin/clear-checks', { method: 'POST' });
-      setChecks([]);
-      loadStats();
-    } catch {
-      alert('Failed to clear');
+  const handleSaveVideoModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!videoForm.titleNe && !videoForm.titleEn) {
+      alert(isNe ? 'कृपया भिडियोको शीर्षक राख्नुहोस्।' : 'Please enter a video title.');
+      return;
+    }
+    const cleanYtId = extractYouTubeId(videoForm.youtubeId || '');
+    if (!cleanYtId) {
+      alert(isNe ? 'कृपया मान्य YouTube भिडियो ID वा URL राख्नुहोस्।' : 'Please enter a valid YouTube Video ID or URL.');
+      return;
+    }
+
+    const finalThumb =
+      videoForm.thumbnail && videoForm.thumbnail.trim().length > 5
+        ? videoForm.thumbnail.trim()
+        : `https://img.youtube.com/vi/${cleanYtId}/hqdefault.jpg`;
+
+    const newVideoItem: ScamVideoItem = {
+      id: videoForm.id || `vid-${Date.now()}`,
+      titleNe: videoForm.titleNe || videoForm.titleEn || '',
+      titleEn: videoForm.titleEn || videoForm.titleNe || '',
+      descNe: videoForm.descNe || '',
+      descEn: videoForm.descEn || '',
+      youtubeId: cleanYtId,
+      category: (videoForm.category as ScamVideoItem['category']) || 'wallet',
+      duration: videoForm.duration || '०४:००',
+      thumbnail: finalThumb,
+    };
+
+    const updated = addOrUpdateVideo(newVideoItem);
+    setVideoList(updated);
+    setIsAddingVideo(false);
+    setEditingVideo(null);
+    showToast(isNe ? 'भिडियो सुरक्षित गरियो!' : 'Video saved successfully!');
+  };
+
+  const handleResetVideos = () => {
+    if (window.confirm(isNe ? 'पूर्वनिर्धारित भिडियोहरू फर्काउन चाहनुहुन्छ?' : 'Reset to default awareness videos?')) {
+      const def = resetAppVideos();
+      setVideoList(def);
+      showToast(isNe ? 'भिडियोहरू पूर्वनिर्धारितमा फर्किए!' : 'Videos reset to default!');
     }
   };
 
-  const loadFeedbacks = async () => {
-    setLoadingFeedback(true);
-    try {
-      const res = await fetch('/api/feedback');
-      const data = await res.json();
-      if (data.feedback) setFeedbacks(data.feedback);
-    } catch {
-      // silent
-    } finally {
-      setLoadingFeedback(false);
-    }
-  };
-
-  const handleReplyFeedback = async (id: string) => {
-    const reply = replyTextMap[id];
-    if (!reply || !reply.trim()) return;
-
-    try {
-      const res = await fetch(`/api/feedback/${id}/reply`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reply }),
-      });
-      if (res.ok) {
-        setReplyTextMap((prev) => ({ ...prev, [id]: '' }));
-        loadFeedbacks();
-      }
-    } catch {
-      alert('Failed to reply');
-    }
-  };
-
-  const loadIssues = async () => {
-    setLoadingIssues(true);
-    try {
-      const res = await fetch('/api/issues');
-      const data = await res.json();
-      if (data.issues) setIssues(data.issues);
-    } catch {
-      // silent
-    } finally {
-      setLoadingIssues(false);
-    }
-  };
-
-  const handleOpenEditIssue = (issue: CustomerIssue) => {
-    setSelectedIssueForEdit(issue);
-    setEditIssueStatus(issue.status);
-    setEditIssueSeverity(issue.severity);
-    setEditAdminNotes(issue.adminNotes || '');
-    setEditAdminReply(issue.adminReply || '');
-  };
-
-  const handleSaveIssue = async () => {
-    if (!selectedIssueForEdit) return;
-    setSavingIssue(true);
-    try {
-      const res = await fetch(`/api/issues/${selectedIssueForEdit.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: editIssueStatus,
-          severity: editIssueSeverity,
-          adminNotes: editAdminNotes,
-          adminReply: editAdminReply,
-        }),
-      });
-      if (res.ok) {
-        setSelectedIssueForEdit(null);
-        loadIssues();
-        loadStats();
-      }
-    } catch {
-      alert('Failed to update issue');
-    } finally {
-      setSavingIssue(false);
-    }
-  };
-
-  const loadComments = async () => {
-    setLoadingComments(true);
-    try {
-      const res = await fetch('/api/comments');
-      const data = await res.json();
-      if (data.comments) setComments(data.comments);
-    } catch {
-      // silent
-    } finally {
-      setLoadingComments(false);
-    }
-  };
-
-  const handleReplyComment = async (commentId: string) => {
-    const text = commentReplyMap[commentId];
-    if (!text || !text.trim()) return;
-
-    try {
-      const res = await fetch(`/api/comments/${commentId}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          author: 'Cyber Bureau Support Admin',
-          text,
-          isAdmin: true,
-        }),
-      });
-      if (res.ok) {
-        setCommentReplyMap((prev) => ({ ...prev, [commentId]: '' }));
-        loadComments();
-      }
-    } catch {
-      alert('Failed to reply');
-    }
-  };
-
-  // Export Checks to CSV
-  const handleExportChecksCSV = () => {
-    if (checks.length === 0) return;
-    const headers = ['ID', 'Date', 'Tool', 'CustomerSession', 'RiskLevel', 'Score', 'InputSummary', 'SolutionSummary'];
-    const rows = checks.map((c) => [
-      c.id,
-      new Date(c.timestamp).toLocaleString(),
-      c.toolNameEn,
-      c.customerSession,
-      c.riskLevel,
-      c.score,
-      `"${c.inputSummary.replace(/"/g, '""')}"`,
-      `"${c.solutionSummary.replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `scam_checks_report_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // ==========================================
-  // VIEW: PIN AUTHENTICATION FORM
-  // ==========================================
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-md mx-auto my-12 p-6 sm:p-8 bg-[#121c33] border border-slate-700/80 rounded-3xl shadow-2xl space-y-6 animate-fadeIn">
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-cyan-950 border border-cyan-700/50 flex items-center justify-center text-cyan-400 mx-auto shadow-inner">
-            <Lock className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-bold text-white">
-            {isNe ? 'व्यवस्थापक नियन्त्रण कक्ष (Admin Portal)' : 'Scam Defense Admin Portal'}
-          </h2>
-          <p className="text-xs text-slate-400">
-            {isNe
-              ? 'ग्राहकहरूले के-के जाँचे, कस्तो समाधान आयो, र प्राप्त समस्याहरूको अनुगमन गर्न पिन कोड प्रविष्ट गर्नुहोस्।'
-              : 'Enter admin passcode to inspect customer checks, AI solutions, and manage support tickets.'}
-          </p>
-        </div>
-
-        <form onSubmit={handlePinSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 block">
-              {isNe ? 'व्यवस्थापक पिन कोड (Admin PIN)' : 'Admin PIN Code'}
-            </label>
-            <input
-              type="password"
-              autoFocus
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value)}
-              placeholder="admin123"
-              className="w-full bg-[#0b1220] border border-slate-700 rounded-xl px-4 py-3 text-sm text-center text-white tracking-widest placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-            />
-            {authError && <p className="text-xs text-rose-400 text-center font-medium">{authError}</p>}
-          </div>
-
+  return (
+    <div className="space-y-6 animate-fadeIn text-slate-100">
+      {/* ======================================================== */}
+      {/* 1. TOP ADMIN BAR WITH HAMBURGER MENU BUTTON */}
+      {/* ======================================================== */}
+      <header className="p-4 sm:p-5 rounded-3xl bg-[#0c1424] border border-cyan-800/50 shadow-2xl flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {/* Hamburger Menu Trigger Button */}
           <button
-            type="submit"
-            disabled={isVerifying}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-slate-950 font-bold text-sm transition shadow-lg shadow-cyan-950/50 cursor-pointer disabled:opacity-50"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 font-bold text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shadow-md"
+            aria-label="Toggle Navigation Menu"
           >
-            {isVerifying ? (isNe ? 'जाँच्दैछ...' : 'Verifying...') : isNe ? 'लगइन गर्नुहोस्' : 'Unlock Admin Portal'}
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <span className="font-bold">{isNe ? '☰ मेनु' : '☰ Menu'}</span>
           </button>
 
-          {/* Quick Demo Login Option */}
-          <div className="pt-2 border-t border-slate-800 text-center space-y-2">
-            <span className="text-[11px] text-slate-400 block">
-              {isNe ? 'परीक्षणको लागि सिधै खोल्नुहोस् (Default PIN: admin123):' : 'Demo Passcode: admin123'}
-            </span>
-            <button
-              type="button"
-              onClick={handleQuickDemoUnlock}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold border border-slate-700 transition cursor-pointer"
-            >
-              <Unlock className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{isNe ? 'एक क्लिकमा डेमो एडमिन खोल्नुहोस्' : 'One-Click Demo Unlock'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // VIEW: AUTHENTICATED ADMIN DASHBOARD
-  // ==========================================
-  return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Top Admin Header Bar */}
-      <div className="p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-[#121c33] via-[#0f172a] to-[#121c33] border border-slate-700/80 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 to-teal-500 p-0.5 shadow-lg">
-            <div className="w-full h-full bg-[#0d1627] rounded-[14px] flex items-center justify-center">
-              <Shield className="w-6 h-6 text-cyan-400" />
-            </div>
-          </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-white tracking-tight">
-                {isNe ? 'साइबर सुरक्षा व्यवस्थापक प्यानल (Admin Dashboard)' : 'Cyber Defense Admin Control'}
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                LIVE LOGGING
+            <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              <span>{isNe ? 'व्यवस्थापक प्यानल' : 'Admin Panel'}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                {activeSection === 'content'
+                  ? isNe
+                    ? 'सामग्री'
+                    : 'Content'
+                  : activeSection === 'video'
+                  ? isNe
+                    ? 'भिडियो'
+                    : 'Video'
+                  : isNe
+                  ? 'तस्विर'
+                  : 'Image'}
               </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
+            </h1>
+            <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">
               {isNe
-                ? 'ग्राहकहरूले गरेको जाँच, एआईले दिएको समाधान, प्रतिक्रिया र दर्ता भएका समस्याहरूको प्रत्यक्ष व्यवस्थापन।'
-                : 'Real-time customer check records, AI generated solutions, user ratings, and issue resolution.'}
+                ? 'सामग्री (Content), भिडियो (Video) र तस्विर (Image) मात्र व्यवस्थापन गर्नुहोस्'
+                : 'Directly manage app content, videos, and images'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end md:self-auto">
-          <button
-            onClick={() => {
-              loadStats();
-              loadChecks();
-              loadFeedbacks();
-              loadIssues();
-            }}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
-            title={isNe ? 'डाटा ताजा गर्नुहोस्' : 'Refresh Data'}
-          >
-            <RefreshCw className="w-4 h-4" />
+        {/* Back to Home Button */}
+        <button
+          onClick={onNavigateHome}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer transition-all active:scale-95 shrink-0"
+        >
+          <ArrowLeft className="w-4 h-4 text-cyan-400" />
+          <span>{isNe ? 'गृहपृष्ठमा फर्कनुहोस्' : 'Back to Home'}</span>
+        </button>
+      </header>
+
+      {/* Save Success Toast */}
+      {saveToast && (
+        <div className="p-3.5 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs sm:text-sm font-bold flex items-center justify-between shadow-xl animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{saveToast}</span>
+          </div>
+          <button onClick={() => setSaveToast(null)} className="text-slate-400 hover:text-white cursor-pointer">
+            <X className="w-4 h-4" />
           </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/80 hover:text-rose-300 text-slate-300 border border-slate-700 hover:border-rose-800/50 text-xs font-semibold transition cursor-pointer"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>{isNe ? 'लगआउट' : 'Lock Admin'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Stats Overview Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-1">
-            <span className="text-[11px] font-semibold text-slate-400 block uppercase tracking-wider">
-              {isNe ? 'कुल ग्राहक जाँचहरू' : 'Total Customer Checks'}
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">{stats.totalChecks}</span>
-              <span className="text-xs text-cyan-400 font-semibold">{isNe ? 'स्क्यान' : 'Scans'}</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-rose-900/30 space-y-1">
-            <span className="text-[11px] font-semibold text-rose-300 block uppercase tracking-wider">
-              {isNe ? 'उच्च जोखिम (ठगी रोकियो)' : 'High-Risk Blocked'}
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-rose-400">{stats.highRiskCount}</span>
-              <span className="text-xs text-rose-300 font-semibold">
-                {stats.totalChecks > 0 ? Math.round((stats.highRiskCount / stats.totalChecks) * 100) : 0}%
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-amber-900/30 space-y-1">
-            <span className="text-[11px] font-semibold text-amber-300 block uppercase tracking-wider">
-              {isNe ? 'औसत ग्राहक रेटिङ' : 'Average User Rating'}
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-amber-400">{stats.avgRating} ★</span>
-              <span className="text-xs text-slate-400">({stats.totalFeedback} {isNe ? 'समीक्षा' : 'reviews'})</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-emerald-900/30 space-y-1">
-            <span className="text-[11px] font-semibold text-emerald-300 block uppercase tracking-wider">
-              {isNe ? 'दर्ता भएका समस्या (Tickets)' : 'Active Issues'}
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-emerald-400">{stats.openIssues}</span>
-              <span className="text-xs text-slate-400 font-semibold">{isNe ? 'सुलझाउन बाँकी' : 'Open'}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Admin Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto no-scrollbar">
-        <button
-          onClick={() => setActiveTab('checks')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shrink-0 cursor-pointer ${
-            activeTab === 'checks'
-              ? 'bg-cyan-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Search className="w-4 h-4" />
-          <span>{isNe ? '१. ग्राहक जाँच र समाधान लग (Checks Log)' : '1. Customer Checks & Solutions Log'}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('feedback')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shrink-0 cursor-pointer ${
-            activeTab === 'feedback'
-              ? 'bg-amber-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Star className="w-4 h-4" />
-          <span>{isNe ? '२. ग्राहक प्रतिक्रिया र रेटिङ (Feedback)' : '2. Ratings & Feedback'}</span>
-          {feedbacks.length > 0 && (
-            <span className="px-2 py-0.2 rounded-full bg-black/40 text-[10px]">
-              {feedbacks.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('issues')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shrink-0 cursor-pointer ${
-            activeTab === 'issues'
-              ? 'bg-rose-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <AlertTriangle className="w-4 h-4" />
-          <span>{isNe ? '३. ग्राहक समस्या दर्ता र टिकट (Tickets)' : '3. Raised Issues & Tickets'}</span>
-          {issues.filter((i) => i.status === 'OPEN').length > 0 && (
-            <span className="px-2 py-0.2 rounded-full bg-rose-950 text-rose-300 text-[10px] animate-pulse">
-              {issues.filter((i) => i.status === 'OPEN').length} New
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('comments')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shrink-0 cursor-pointer ${
-            activeTab === 'comments'
-              ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>{isNe ? '४. नागरिक छलफल व्यवस्थापन (Comments)' : '4. Community Comments'}</span>
-        </button>
-      </div>
-
-      {/* ======================================================== */}
-      {/* TAB 1: CUSTOMER CHECKS & SOLUTIONS LOG                   */}
-      {/* ======================================================== */}
-      {activeTab === 'checks' && (
-        <div className="space-y-4">
-          {/* Filters & Actions Bar */}
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && loadChecks()}
-                placeholder={isNe ? 'ग्राहक आईडी, सन्देश, लिंक वा ठगी प्रकार खोजी गर्नुहोस्...' : 'Search by customer session, query or scam type...'}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-
-            {/* Filter by Tool */}
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedTool}
-                onChange={(e) => {
-                  setSelectedTool(e.target.value);
-                  setTimeout(loadChecks, 50);
-                }}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
-              >
-                <option value="all">{isNe ? 'सबै टुलहरू (All Tools)' : 'All Tools'}</option>
-                <option value="message">{isNe ? '💬 सन्देश (Message)' : 'Message'}</option>
-                <option value="link">{isNe ? '🔗 लिंक (Link)' : 'Link'}</option>
-                <option value="shopping">{isNe ? '🛍️ किनमेल (Shopping)' : 'Shopping'}</option>
-                <option value="photo">{isNe ? '📸 फोटो (Photo)' : 'Photo'}</option>
-                <option value="voice">{isNe ? '🎙️ आवाज (Voice)' : 'Voice'}</option>
-                <option value="chat">{isNe ? '🤖 च्याटबट (Chat)' : 'Chat'}</option>
-              </select>
-
-              {/* Filter by Risk */}
-              <select
-                value={selectedRisk}
-                onChange={(e) => {
-                  setSelectedRisk(e.target.value);
-                  setTimeout(loadChecks, 50);
-                }}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
-              >
-                <option value="all">{isNe ? 'सबै जोखिम स्तर' : 'All Risk Levels'}</option>
-                <option value="HIGH_RISK">{isNe ? '🚨 उच्च जोखिम (HIGH_RISK)' : 'HIGH_RISK'}</option>
-                <option value="CAUTION">{isNe ? '⚠️ सावधानी (CAUTION)' : 'CAUTION'}</option>
-                <option value="LOW_RISK">{isNe ? '✅ सुरक्षित (LOW_RISK)' : 'LOW_RISK'}</option>
-              </select>
-
-              <button
-                onClick={handleExportChecksCSV}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold cursor-pointer transition shrink-0"
-                title="Export report to CSV"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">CSV</span>
-              </button>
-
-              <button
-                onClick={handleClearAllChecks}
-                className="p-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 transition cursor-pointer"
-                title={isNe ? 'सबै लग मेटाउनुहोस्' : 'Clear all logs'}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Checks List Table / Cards */}
-          {loadingChecks ? (
-            <div className="p-12 text-center text-xs text-slate-400 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'ग्राहक चेक लगहरू लोड हुँदैछन्...' : 'Loading customer checks...'}
-            </div>
-          ) : checks.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'कुनै चेक लग फेला परेन।' : 'No check logs matching criteria.'}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {checks.map((chk) => {
-                const isHigh = chk.riskLevel === 'HIGH_RISK';
-                const isCaution = chk.riskLevel === 'CAUTION';
-
-                return (
-                  <div
-                    key={chk.id}
-                    className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 hover:border-slate-700 transition space-y-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      {/* Meta: Tool & Customer ID */}
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700">
-                          {isNe ? chk.toolNameNe : chk.toolNameEn}
-                        </span>
-                        <span className="text-slate-400 font-mono text-[11px]">
-                          {chk.customerSession}
-                        </span>
-                        {chk.location && (
-                          <span className="text-[11px] text-slate-500 hidden sm:inline">
-                            • {chk.location}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Risk Badge & Score */}
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            isHigh
-                              ? 'bg-rose-950 text-rose-300 border border-rose-800/60'
-                              : isCaution
-                              ? 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                              : 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                          }`}
-                        >
-                          {chk.riskLevel} ({chk.score}/100)
-                        </span>
-
-                        <span className="text-[11px] text-slate-500">
-                          {new Date(chk.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* What Customer Entered vs AI Solution */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
-                      {/* Customer Input */}
-                      <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1">
-                        <span className="text-[11px] font-bold text-cyan-400 block uppercase tracking-wider">
-                          {isNe ? 'ग्राहकले जाँचेको विवरण (Customer Input):' : 'Customer Input:'}
-                        </span>
-                        <p className="text-slate-200 line-clamp-2 leading-relaxed">
-                          {chk.inputSummary}
-                        </p>
-                      </div>
-
-                      {/* AI Generated Solution */}
-                      <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-1">
-                        <span className="text-[11px] font-bold text-emerald-400 block uppercase tracking-wider">
-                          {isNe ? 'एआईले दिएको समाधान (Solution Output):' : 'AI Solution & Verdict:'}
-                        </span>
-                        {chk.scamType && (
-                          <div className="text-[11px] font-semibold text-rose-300 line-clamp-1">
-                            {chk.scamType}
-                          </div>
-                        )}
-                        <p className="text-slate-300 line-clamp-2 leading-relaxed">
-                          {chk.solutionSummary}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Footer Actions */}
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800/80">
-                      <span className="text-[11px] text-slate-500">
-                        Engine: {chk.source || 'gemini-3.8-flash'}
-                      </span>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedCheckForModal(chk)}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/40 text-xs font-semibold transition cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>{isNe ? 'सम्पूर्ण समाधान हेर्नुहोस्' : 'View Full Solution'}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteCheck(chk.id)}
-                          className="p-1 rounded-lg hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition cursor-pointer"
-                          title="Delete record"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: CUSTOMER FEEDBACK & 5-STAR RATINGS                */}
+      {/* 2. HAMBURGER SLIDE DRAWER / MODAL OVERLAY */}
       {/* ======================================================== */}
-      {activeTab === 'feedback' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-white">
-                {isNe ? 'ग्राहक प्रतिक्रिया र समीक्षा (Customer Ratings & Reviews)' : 'Customer Feedback & Ratings'}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {isNe
-                  ? 'ग्राहकहरूले एप प्रयोग गरेपछि दिएको रेटिङ र सल्लाहहरू यहाँ हेर्न तथा उत्तर दिन सकिन्छ।'
-                  : 'Inspect customer satisfaction ratings, false-positive reports, and respond to users.'}
-              </p>
-            </div>
-            <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
-              {stats ? `${stats.avgRating} / 5.0 Average` : '5.0 ★'}
-            </div>
-          </div>
+      {menuOpen && (
+        <div className="relative z-50">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setMenuOpen(false)}
+          />
 
-          {loadingFeedback ? (
-            <div className="p-12 text-center text-xs text-slate-400 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'प्रतिक्रियाहरू लोड हुँदैछन्...' : 'Loading feedbacks...'}
-            </div>
-          ) : feedbacks.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'अहिलेसम्म कुनै प्रतिक्रिया आएको छैन।' : 'No customer feedback received yet.'}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {feedbacks.map((fb) => (
-                <div
-                  key={fb.id}
-                  className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-3"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{fb.customerName}</span>
-                      {fb.customerEmail && (
-                        <span className="text-slate-400 text-[11px]">({fb.customerEmail})</span>
-                      )}
-                      <span className="px-2 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
-                        {fb.feedbackType}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-0.5 text-amber-400">
-                        {Array.from({ length: fb.rating || 5 }).map((_, i) => (
-                          <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
-                        ))}
-                      </div>
-                      <span className="text-[11px] text-slate-500">
-                        {new Date(fb.timestamp).toLocaleDateString()}
-                      </span>
-                    </div>
+          {/* Drawer Sheet */}
+          <div className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] bg-[#0c1424] border-r border-cyan-800/60 p-5 shadow-2xl flex flex-col justify-between overflow-y-auto animate-fadeIn">
+            <div className="space-y-6">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-slate-950 font-black">
+                    A
                   </div>
-
-                  {fb.checkContext && (
-                    <div className="text-[11px] text-cyan-300 bg-slate-950 p-2 rounded-lg font-mono">
-                      Context: {fb.checkContext}
-                    </div>
-                  )}
-
-                  <p className="text-xs text-slate-200 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-900">
-                    "{fb.comment}"
-                  </p>
-
-                  {/* Existing Admin Reply */}
-                  {fb.adminReply && (
-                    <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs space-y-1">
-                      <span className="font-bold text-emerald-400 block">
-                        {isNe ? 'व्यवस्थापकको जवाफ (Official Admin Reply):' : 'Official Admin Response:'}
-                      </span>
-                      <p className="text-slate-300">{fb.adminReply}</p>
-                    </div>
-                  )}
-
-                  {/* Reply Input Form */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="text"
-                      value={replyTextMap[fb.id] || ''}
-                      onChange={(e) => setReplyTextMap({ ...replyTextMap, [fb.id]: e.target.value })}
-                      placeholder={isNe ? 'ग्राहकलाई जवाफ पठाउनुहोस्...' : 'Type response to customer...'}
-                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
-                    />
-                    <button
-                      onClick={() => handleReplyFeedback(fb.id)}
-                      disabled={!replyTextMap[fb.id]?.trim()}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-slate-950 transition cursor-pointer disabled:opacity-40"
-                    >
-                      {isNe ? 'जवाफ दिनुहोस्' : 'Reply'}
-                    </button>
+                  <div>
+                    <h2 className="text-sm font-black text-white">
+                      {isNe ? 'व्यवस्थापक मेनु' : 'Admin Menu'}
+                    </h2>
+                    <p className="text-[11px] text-slate-400">
+                      {isNe ? 'परिवर्तन गर्न छान्नुहोस्' : 'Select section to edit'}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-      {/* ======================================================== */}
-      {/* TAB 3: CUSTOMER ISSUES & TICKETS                         */}
-      {/* ======================================================== */}
-      {activeTab === 'issues' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-white">
-                {isNe ? 'ग्राहक समस्या दर्ता र टिकट व्यवस्थापन (Support Tickets)' : 'Customer Raised Issues & Tickets'}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {isNe
-                  ? 'ग्राहकले नयाँ ठगी, गलत नतिजा वा आपतकालीन सहयोगका लागि उठाएका समस्याहरूको स्थिति व्यवस्थापन गर्नुहोस्।'
-                  : 'Manage tickets reported by citizens regarding new scams, wrong verdicts, and wallet freeze assistance.'}
-              </p>
-            </div>
-          </div>
-
-          {loadingIssues ? (
-            <div className="p-12 text-center text-xs text-slate-400 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'टिकटहरू लोड हुँदैछन्...' : 'Loading support tickets...'}
-            </div>
-          ) : issues.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'कुनै समस्या दर्ता भएको छैन।' : 'No active customer issues.'}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {issues.map((iss) => {
-                const isOpen = iss.status === 'OPEN';
-                const isInvestigating = iss.status === 'INVESTIGATING';
-                const isResolved = iss.status === 'RESOLVED';
-
-                return (
-                  <div
-                    key={iss.id}
-                    className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-cyan-300 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
-                          {iss.ticketNumber}
-                        </span>
-                        <span className="font-bold text-white">{iss.customerName}</span>
-                        {iss.customerContact && (
-                          <span className="text-slate-400 text-[11px]">📞 {iss.customerContact}</span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* Severity Badge */}
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            iss.severity === 'CRITICAL'
-                              ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                              : iss.severity === 'HIGH'
-                              ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                              : 'bg-slate-800 text-slate-300'
-                          }`}
-                        >
-                          {iss.severity}
-                        </span>
-
-                        {/* Status Badge */}
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            isResolved
-                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                              : isInvestigating
-                              ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
-                              : 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse'
-                          }`}
-                        >
-                          {iss.status}
-                        </span>
-
-                        <span className="text-[11px] text-slate-500">
-                          {new Date(iss.timestamp).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-
+              {/* Menu Navigation Links */}
+              <nav className="space-y-2">
+                {/* 1. Content */}
+                <button
+                  onClick={() => {
+                    setActiveSection('content');
+                    setMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl font-bold text-xs sm:text-sm text-left transition-all cursor-pointer ${
+                    activeSection === 'content'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-md'
+                      : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 border border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-cyan-400" />
                     <div>
-                      <h4 className="text-sm font-bold text-white">{iss.title}</h4>
-                      <p className="text-xs text-slate-300 mt-1 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-900">
-                        {iss.description}
-                      </p>
-                    </div>
-
-                    {/* Admin Investigation Notes & Reply */}
-                    {(iss.adminNotes || iss.adminReply) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-                        {iss.adminNotes && (
-                          <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300">
-                            <span className="font-bold text-slate-400 block text-[10px]">INTERNAL NOTES:</span>
-                            {iss.adminNotes}
-                          </div>
-                        )}
-                        {iss.adminReply && (
-                          <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-slate-200">
-                            <span className="font-bold text-emerald-400 block text-[10px]">REPLY TO CITIZEN:</span>
-                            {iss.adminReply}
-                          </div>
-                        )}
+                      <div className="font-black">
+                        {isNe ? '१. सामग्री व्यवस्थापन (Content)' : '1. Content Management'}
                       </div>
-                    )}
-
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
-                      <span className="text-[11px] text-slate-500">
-                        Category: {iss.category}
-                      </span>
-
-                      <button
-                        onClick={() => handleOpenEditIssue(iss)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold transition cursor-pointer"
-                      >
-                        {isNe ? 'स्थिति परिवर्तन / समाधान गर्नुहोस्' : 'Update Status & Reply'}
-                      </button>
+                      <div className="text-[10px] text-slate-400 font-normal">
+                        {isNe ? 'हेडलाइन, सूचना, फोन नम्बर, इमेल' : 'Headlines, alert notices, phone'}
+                      </div>
                     </div>
                   </div>
-                );
-              })}
+                  {activeSection === 'content' && <span className="text-cyan-400 font-black">●</span>}
+                </button>
+
+                {/* 2. Video */}
+                <button
+                  onClick={() => {
+                    setActiveSection('video');
+                    setMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl font-bold text-xs sm:text-sm text-left transition-all cursor-pointer ${
+                    activeSection === 'video'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-400/50 shadow-md'
+                      : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 border border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Video className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <div className="font-black">
+                        {isNe ? '२. भिडियो व्यवस्थापन (Video)' : '2. Video Management'}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal">
+                        {isNe ? 'सचेतना भिडियोहरू, YouTube ID, लिङ्क' : 'Scam awareness videos & clips'}
+                      </div>
+                    </div>
+                  </div>
+                  {activeSection === 'video' && <span className="text-purple-400 font-black">●</span>}
+                </button>
+
+                {/* 3. Image */}
+                <button
+                  onClick={() => {
+                    setActiveSection('image');
+                    setMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl font-bold text-xs sm:text-sm text-left transition-all cursor-pointer ${
+                    activeSection === 'image'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 shadow-md'
+                      : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 border border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ImageIcon className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <div className="font-black">
+                        {isNe ? '३. तस्विर व्यवस्थापन (Image)' : '3. Image Management'}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal">
+                        {isNe ? 'ब्यानर तस्विरहरू र टुल फोटोहरू' : 'Hero banners & tool card photos'}
+                      </div>
+                    </div>
+                  </div>
+                  {activeSection === 'image' && <span className="text-emerald-400 font-black">●</span>}
+                </button>
+              </nav>
             </div>
-          )}
+
+            {/* Drawer Bottom Actions */}
+            <div className="pt-6 border-t border-slate-800 space-y-2.5">
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onNavigateHome();
+                }}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-cyan-500 text-slate-950 font-black text-xs cursor-pointer shadow-lg active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>{isNe ? 'एपको गृहपृष्ठमा जानुहोस्' : 'Return to App Homepage'}</span>
+              </button>
+              <div className="text-center text-[10px] text-slate-500">
+                Scamly Admin v2.0
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* TAB 4: COMMUNITY COMMENTS & DISCUSSION                   */}
+      {/* 3. MAIN CONTENT BODY ACCORDING TO ACTIVE SECTION */}
       {/* ======================================================== */}
-      {activeTab === 'comments' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-white">
-                {isNe ? 'सामुदायिक ठगी सचेतना कमेन्टहरू (Community Forum Moderation)' : 'Citizen Forum & Scam Warning Moderation'}
-              </h3>
+
+      {/* ---------------------------------------------------- */}
+      {/* SECTION 1: CONTENT (सामग्री) MANAGEMENT */}
+      {/* ---------------------------------------------------- */}
+      {activeSection === 'content' && (
+        <div className="space-y-6">
+          {/* Section banner */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#101e38] via-[#0d162a] to-[#101e38] border border-cyan-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold uppercase tracking-wider">
+                <FileText className="w-4 h-4" />
+                <span>{isNe ? 'सामग्री व्यवस्थापन' : 'Content Management'}</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-white">
+                {isNe ? 'गृहपृष्ठ हेडलाइन तथा सूचना पाठहरू सम्पादन गर्नुहोस्' : 'Edit App Headlines & Announcement Texts'}
+              </h2>
               <p className="text-xs text-slate-400">
                 {isNe
-                  ? 'नागरिकहरूले शेयर गरेका वास्तविक अनुभव तथा सचेतना कमेन्टहरू हेर्नुहोस् र आधिकारिक जवाफ दिनुहोस्।'
-                  : 'Review citizen experiences, like helpful advice, and post official guidance.'}
+                  ? 'यहाँ परिवर्तन गरिएका शब्दहरू सेभ गर्नासाथ गृहपृष्ठमा तुरुन्तै देखिनेछन्।'
+                  : 'Changes saved here are instantly applied across the home screen and alerts.'}
               </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleResetContent}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{isNe ? 'पूर्वनिर्धारित' : 'Reset Default'}</span>
+              </button>
             </div>
           </div>
 
-          {loadingComments ? (
-            <div className="p-12 text-center text-xs text-slate-400 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'कमेन्टहरू लोड हुँदैछन्...' : 'Loading comments...'}
+          <form onSubmit={handleSaveContent} className="space-y-6">
+            {/* Group A: Hero Headlines */}
+            <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
+              <h3 className="text-sm font-black text-cyan-300 flex items-center gap-2">
+                <span>🎯</span>
+                <span>{isNe ? 'मुख्य गृहपृष्ठ हेडलाइन (Hero Headlines)' : 'Hero Main Headline'}</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'हेडलाइन (नेपाली)' : 'Headline (Nepali)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={contentForm.heroHeadlineNe}
+                    onChange={(e) => setContentForm({ ...contentForm, heroHeadlineNe: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none"
+                    placeholder="शंकास्पद अफर वा सन्देश पैसा पठाउनुअघि नै जाँच्नुहोस्"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'हेडलाइन (English)' : 'Headline (English)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={contentForm.heroHeadlineEn}
+                    onChange={(e) => setContentForm({ ...contentForm, heroHeadlineEn: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none"
+                    placeholder="Verify Questionable Offers Before Transferring Money"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'सब-हेडलाइन विवरण (नेपाली)' : 'Subheadline Description (Nepali)'}
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={contentForm.heroSubheadlineNe}
+                    onChange={(e) => setContentForm({ ...contentForm, heroSubheadlineNe: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none resize-none"
+                    placeholder="SMS, नक्कली सपिङ पेज, फिसिङ लिंक..."
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'सब-हेडलाइन विवरण (English)' : 'Subheadline Description (English)'}
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={contentForm.heroSubheadlineEn}
+                    onChange={(e) => setContentForm({ ...contentForm, heroSubheadlineEn: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none resize-none"
+                    placeholder="Scan SMS, fake store offers..."
+                    required
+                  />
+                </div>
+              </div>
             </div>
-          ) : comments.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl">
-              {isNe ? 'कुनै कमेन्ट छैन।' : 'No community comments.'}
+
+            {/* Group B: Emergency & Helpline Numbers */}
+            <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
+              <h3 className="text-sm font-black text-rose-300 flex items-center gap-2">
+                <span>🚨</span>
+                <span>{isNe ? 'नेपाल प्रहरी हटलाइन तथा सम्पर्क जानकारी' : 'Emergency Hotline & Contact Info'}</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'साइबर ब्युरो हटलाइन फोन' : 'Cyber Bureau Hotline Phone'}
+                  </label>
+                  <input
+                    type="text"
+                    value={contentForm.helplinePhone}
+                    onChange={(e) => setContentForm({ ...contentForm, helplinePhone: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none font-mono"
+                    placeholder="०१-४२११३०४"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'साइबर ब्युरो आधिकारिक इमेल' : 'Cyber Bureau Official Email'}
+                  </label>
+                  <input
+                    type="email"
+                    value={contentForm.helplineEmail}
+                    onChange={(e) => setContentForm({ ...contentForm, helplineEmail: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none font-mono"
+                    placeholder="cyberbureau@nepalpolice.gov.np"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'आपतकालीन सूचना स्ट्रिप (नेपाली)' : 'Emergency Notification Strip (Nepali)'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={contentForm.emergencyAlertNe}
+                    onChange={(e) => setContentForm({ ...contentForm, emergencyAlertNe: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none resize-none"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'आपतकालीन सूचना स्ट्रिप (English)' : 'Emergency Notification Strip (English)'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={contentForm.emergencyAlertEn}
+                    onChange={(e) => setContentForm({ ...contentForm, emergencyAlertEn: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none resize-none"
+                    required
+                  />
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {comments.map((cmt) => (
-                <div
-                  key={cmt.id}
-                  className="p-4 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-3"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{cmt.authorName}</span>
-                      {cmt.isVerifiedVictim && (
-                        <span className="px-2 py-0.2 rounded-full text-[10px] bg-rose-950 text-rose-300 border border-rose-800">
-                          {isNe ? 'पीडित अनुभव' : 'Victim Report'}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-slate-500">
-                      {new Date(cmt.timestamp).toLocaleDateString()}
+
+            {/* Group C: Complaint Notice */}
+            <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
+              <h3 className="text-sm font-black text-amber-300 flex items-center gap-2">
+                <span>📋</span>
+                <span>{isNe ? 'साइबर ब्युरो उजुरी मस्यौदा सूचना' : 'Complaint Generator Notice'}</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'उजुरी सूचना (नेपाली)' : 'Notice (Nepali)'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={contentForm.complaintNoticeNe}
+                    onChange={(e) => setContentForm({ ...contentForm, complaintNoticeNe: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none resize-none"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    {isNe ? 'उजुरी सूचना (English)' : 'Notice (English)'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={contentForm.complaintNoticeEn}
+                    onChange={(e) => setContentForm({ ...contentForm, complaintNoticeEn: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-cyan-400 outline-none resize-none"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button Bar */}
+            <div className="p-4 rounded-2xl bg-[#0c1424] border border-slate-800 flex items-center justify-between gap-4">
+              <span className="text-xs text-slate-400">
+                {isNe ? 'सामग्री सेभ गरेपछि एपमा प्रत्यक्ष लागू हुन्छ।' : 'Saving applies changes directly to the app.'}
+              </span>
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow-lg active:scale-95 transition-all"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isNe ? 'सामग्री सेभ गर्नुहोस्' : 'Save Content'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* SECTION 2: VIDEO (भिडियो) MANAGEMENT */}
+      {/* ---------------------------------------------------- */}
+      {activeSection === 'video' && (
+        <div className="space-y-6">
+          {/* Header Strip */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#1b122e] via-[#140d24] to-[#1b122e] border border-purple-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
+                <Video className="w-4 h-4" />
+                <span>{isNe ? 'भिडियो व्यवस्थापन' : 'Video Management'}</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-white">
+                {isNe ? 'ठगी सचेतना भिडियोहरू व्यवस्थापन गर्नुहोस्' : 'Manage Cyber Awareness Videos'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {isNe
+                  ? 'एपको भिडियो सेन्टर तथा गृहपृष्ठमा देखिने YouTube भिडियोहरू थप्न, सच्याउन वा मेटाउन सक्नुहुन्छ।'
+                  : 'Add, update or remove YouTube cyber defense guides shown across the app.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleResetVideos}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{isNe ? 'पूर्वनिर्धारित' : 'Reset'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenAddVideo}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-black cursor-pointer shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{isNe ? 'नयाँ भिडियो थप्नुहोस्' : 'Add New Video'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Videos Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {videoList.map((vid, idx) => (
+              <div
+                key={vid.id}
+                className="rounded-3xl bg-[#0e1628] border border-slate-800 overflow-hidden flex flex-col justify-between group hover:border-purple-500/40 transition-all"
+              >
+                <div>
+                  {/* Thumbnail and duration */}
+                  <div className="relative h-44 w-full bg-slate-900 overflow-hidden">
+                    <img
+                      src={vid.thumbnail}
+                      alt={vid.titleNe}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 text-white font-mono text-[10px] font-bold">
+                      {vid.duration}
+                    </span>
+                    <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[10px] font-bold uppercase">
+                      {vid.category}
                     </span>
                   </div>
 
-                  <div className="text-cyan-400 text-xs font-semibold">{cmt.topic}</div>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-900">
-                    {cmt.content}
-                  </p>
-
-                  {/* Replies */}
-                  {cmt.replies && cmt.replies.length > 0 && (
-                    <div className="space-y-1.5 pl-3 border-l-2 border-emerald-500/50">
-                      {cmt.replies.map((rep) => (
-                        <div key={rep.id} className="text-xs">
-                          <span className="font-bold text-emerald-400">{rep.author}: </span>
-                          <span className="text-slate-300">{rep.text}</span>
-                        </div>
-                      ))}
+                  {/* Info */}
+                  <div className="p-4 space-y-2">
+                    <h3 className="text-sm font-black text-white leading-snug line-clamp-2">
+                      {isNe ? vid.titleNe : vid.titleEn}
+                    </h3>
+                    <p className="text-xs text-slate-400 line-clamp-2">
+                      {isNe ? vid.descNe : vid.descEn}
+                    </p>
+                    <div className="text-[11px] font-mono text-purple-300 flex items-center gap-1 pt-1">
+                      <span>YouTube ID:</span>
+                      <span className="bg-slate-900 px-1.5 py-0.5 rounded text-white">{vid.youtubeId}</span>
                     </div>
-                  )}
+                  </div>
+                </div>
 
-                  {/* Official Admin Reply Field */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="text"
-                      value={commentReplyMap[cmt.id] || ''}
-                      onChange={(e) => setCommentReplyMap({ ...commentReplyMap, [cmt.id]: e.target.value })}
-                      placeholder={isNe ? 'आधिकारिक व्यवस्थापक जवाफ लेख्नुहोस्...' : 'Post official admin reply...'}
-                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-                    />
+                {/* Video Card Action Buttons */}
+                <div className="p-3 bg-slate-900/60 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  <a
+                    href={`https://www.youtube.com/watch?v=s${vid.youtubeId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-cyan-400 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{isNe ? 'YouTube मा हेर्नुहोस्' : 'Watch Link'}</span>
+                  </a>
+
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleReplyComment(cmt.id)}
-                      disabled={!commentReplyMap[cmt.id]?.trim()}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer disabled:opacity-40"
+                      type="button"
+                      onClick={() => handleOpenEditVideo(vid)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-400/40 text-xs font-bold cursor-pointer"
                     >
-                      {isNe ? 'जवाफ पोस्ट' : 'Post Reply'}
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>{isNe ? 'सम्पादन' : 'Edit'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteVideo(vid.id)}
+                      className="p-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/30 cursor-pointer"
+                      title={isNe ? 'मेटाउनुहोस्' : 'Delete'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Add / Edit Video Modal */}
+          {isAddingVideo && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+              <div className="w-full max-w-lg bg-[#0e1628] border border-purple-500/50 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Video className="w-5 h-5 text-purple-400" />
+                    <span>
+                      {editingVideo
+                        ? isNe
+                          ? 'भिडियो सम्पादन गर्नुहोस्'
+                          : 'Edit Video'
+                        : isNe
+                        ? 'नयाँ भिडियो थप्नुहोस्'
+                        : 'Add New Video'}
+                    </span>
+                  </h3>
+                  <button
+                    onClick={() => setIsAddingVideo(false)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveVideoModal} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      {isNe ? 'YouTube भिडियो ID वा पुरा URL' : 'YouTube Video ID or Full URL'}
+                    </label>
+                    <input
+                      type="text"
+                      value={videoForm.youtubeId || ''}
+                      onChange={(e) => setVideoForm({ ...videoForm, youtubeId: e.target.value })}
+                      placeholder="उदा: bB_UfRCOi-4 वा https://youtu.be/..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:border-purple-400 outline-none"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      {isNe
+                        ? 'सिधा YouTube ID वा लिङ्क राख्नुहोस्, यसले स्वतः पहिचान गर्छ।'
+                        : 'Paste full YouTube link or 11-char ID.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      {isNe ? 'भिडियो शीर्षक (नेपाली)' : 'Video Title (Nepali)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={videoForm.titleNe || ''}
+                      onChange={(e) => setVideoForm({ ...videoForm, titleNe: e.target.value })}
+                      placeholder="उदा: eSewa, Khalti OTP ठगीबाट जोगिने उपाय"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-purple-400 outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      {isNe ? 'भिडियो शीर्षक (English)' : 'Video Title (English)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={videoForm.titleEn || ''}
+                      onChange={(e) => setVideoForm({ ...videoForm, titleEn: e.target.value })}
+                      placeholder="e.g. Preventing OTP & Banking Scams in Nepal"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-purple-400 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      {isNe ? 'विवरण (नेपाली)' : 'Description (Nepali)'}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={videoForm.descNe || ''}
+                      onChange={(e) => setVideoForm({ ...videoForm, descNe: e.target.value })}
+                      placeholder="यस भिडियोले देखाउने मुख्य जानकारी..."
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:border-purple-400 outline-none resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-300">
+                        {isNe ? 'श्रेणी (Category)' : 'Category'}
+                      </label>
+                      <select
+                        value={videoForm.category || 'wallet'}
+                        onChange={(e) =>
+                          setVideoForm({
+                            ...videoForm,
+                            category: e.target.value as ScamVideoItem['category'],
+                          })
+                        }
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs outline-none"
+                      >
+                        <option value="wallet">eSewa/Khalti (वालेट)</option>
+                        <option value="shopping">Shopping (सपिङ)</option>
+                        <option value="telegram">Telegram (टेलिग्राम)</option>
+                        <option value="police">Police Bureau (प्रहरी)</option>
+                        <option value="ai">AI Deepfake (एआई)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-300">
+                        {isNe ? 'समय (Duration)' : 'Duration'}
+                      </label>
+                      <input
+                        type="text"
+                        value={videoForm.duration || '०४:१५'}
+                        onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })}
+                        placeholder="०४:१५"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      {isNe ? 'कस्टम थम्बनेल फोटो URL (ऐच्छिक)' : 'Custom Thumbnail URL (Optional)'}
+                    </label>
+                    <input
+                      type="url"
+                      value={videoForm.thumbnail || ''}
+                      onChange={(e) => setVideoForm({ ...videoForm, thumbnail: e.target.value })}
+                      placeholder="खाली छोडेमा YouTube को थम्बनेल आफै राखिन्छ"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs outline-none"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingVideo(false)}
+                      className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                    >
+                      {isNe ? 'रद्द गर्नुहोस्' : 'Cancel'}
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-black cursor-pointer shadow-lg active:scale-95 transition-all"
+                    >
+                      {isNe ? 'भिडियो सेभ गर्नुहोस्' : 'Save Video'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL 1: FULL CHECK DETAIL & SOLUTION INSPECTOR          */}
-      {/* ======================================================== */}
-      {selectedCheckForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-[#0f172a] border border-slate-700 rounded-3xl p-5 sm:p-7 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4">
-            <button
-              onClick={() => setSelectedCheckForModal(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
-                  {isNe ? selectedCheckForModal.toolNameNe : selectedCheckForModal.toolNameEn}
-                </span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    selectedCheckForModal.riskLevel === 'HIGH_RISK'
-                      ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                      : 'bg-amber-950 text-amber-300 border border-amber-800'
-                  }`}
-                >
-                  {selectedCheckForModal.riskLevel} ({selectedCheckForModal.score}/100)
-                </span>
+      {/* ---------------------------------------------------- */}
+      {/* SECTION 3: IMAGE (तस्विर) MANAGEMENT */}
+      {/* ---------------------------------------------------- */}
+      {activeSection === 'image' && (
+        <div className="space-y-6">
+          {/* Header Strip */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#102422] via-[#0d1c1a] to-[#102422] border border-emerald-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                <ImageIcon className="w-4 h-4" />
+                <span>{isNe ? 'तस्विर व्यवस्थापन' : 'Image Management'}</span>
               </div>
-              <h3 className="text-base font-bold text-white mt-2">
-                {selectedCheckForModal.scamType || (isNe ? 'जाँचको नतिजा' : 'Check Details')}
-              </h3>
+              <h2 className="text-lg sm:text-xl font-black text-white">
+                {isNe ? 'ब्यानर तथा टुल कार्डका तस्विरहरू परिवर्तन गर्नुहोस्' : 'Manage App Banners & Tool Card Photos'}
+              </h2>
               <p className="text-xs text-slate-400">
-                Session: {selectedCheckForModal.customerSession} • {new Date(selectedCheckForModal.timestamp).toLocaleString()}
+                {isNe
+                  ? 'कुनै पनि तस्विरको नयाँ फोटो लिङ्क (URL) राखेर प्रत्यक्ष प्रिभ्यु हेर्नुहोस् र सेभ गर्नुहोस्।'
+                  : 'Update banner image URLs and tool card photography with live visual previews.'}
               </p>
             </div>
-
-            {/* Input Section */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-              <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">
-                {isNe ? 'ग्राहकले राखेको सामग्री (Customer Input):' : 'Customer Input Details:'}
-              </span>
-              <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
-                {selectedCheckForModal.inputSummary}
-              </p>
-              {selectedCheckForModal.fullInput && (
-                <pre className="text-[11px] text-slate-400 bg-slate-900 p-2.5 rounded-xl overflow-x-auto font-mono">
-                  {JSON.stringify(selectedCheckForModal.fullInput, null, 2)}
-                </pre>
-              )}
-            </div>
-
-            {/* Solution & Verdict Section */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-                {isNe ? 'एआईले दिएको समाधान (AI Solution Output):' : 'AI Solution & Instructions Provided:'}
-              </span>
-              <p className="text-xs text-slate-200 leading-relaxed font-sans">
-                {selectedCheckForModal.solutionSummary}
-              </p>
-
-              {/* Warning signs given */}
-              {selectedCheckForModal.warningSigns && selectedCheckForModal.warningSigns.length > 0 && (
-                <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                  <span className="text-[11px] font-bold text-amber-400 block">
-                    {isNe ? 'पहिचान गरिएका जोखिमका संकेतहरू (Warning Signs):' : 'Warning Indicators Flagged:'}
-                  </span>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 pl-1">
-                    {selectedCheckForModal.warningSigns.map((w, idx) => (
-                      <li key={idx}>{w}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Action steps given */}
-              {selectedCheckForModal.actionSteps && selectedCheckForModal.actionSteps.length > 0 && (
-                <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                  <span className="text-[11px] font-bold text-cyan-400 block">
-                    {isNe ? 'ग्राहकलाई दिइएको सुरक्षा निर्देशन (Action Steps):' : 'Action Steps Provided to Customer:'}
-                  </span>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 pl-1">
-                    {selectedCheckForModal.actionSteps.map((a, idx) => (
-                      <li key={idx}>{a}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end pt-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setSelectedCheckForModal(null)}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white transition cursor-pointer"
+                type="button"
+                onClick={handleResetImages}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 cursor-pointer"
               >
-                {isNe ? 'बन्द गर्नुहोस्' : 'Close'}
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{isNe ? 'पूर्वनिर्धारित' : 'Reset Default'}</span>
               </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ======================================================== */}
-      {/* MODAL 2: ISSUE STATUS UPDATE & RESOLUTION DIALOGUE       */}
-      {/* ======================================================== */}
-      {selectedIssueForEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-xl bg-[#0f172a] border border-slate-700 rounded-3xl p-5 sm:p-7 shadow-2xl relative space-y-4">
-            <button
-              onClick={() => setSelectedIssueForEdit(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          <form onSubmit={handleSaveImages} className="space-y-8">
+            {/* 1. App Banners */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-black text-emerald-300 flex items-center gap-2">
+                <span>🖼️</span>
+                <span>{isNe ? 'मुख्य ब्यानर तस्विरहरू (App Banners)' : 'Main App Banners'}</span>
+              </h3>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold px-3 py-1 rounded-lg bg-rose-950 text-rose-300 border border-rose-800">
-                  {selectedIssueForEdit.ticketNumber}
-                </span>
-                <span className="text-xs text-slate-400">{selectedIssueForEdit.customerName}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Hero Banner */}
+                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">
+                      {isNe ? 'गृहपृष्ठ मुख्य ब्यानर (Hero Banner)' : 'Hero Banner'}
+                    </span>
+                    <span className="text-[10px] text-cyan-400 font-mono">16:9 / 3:1 HD</span>
+                  </div>
+                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
+                    <img
+                      src={mediaSettings.banners.hero}
+                      alt="Hero Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <input
+                    type="url"
+                    value={mediaSettings.banners.hero}
+                    onChange={(e) => handleBannerUrlChange('hero', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
+                    placeholder="https://..."
+                    required
+                  />
+                </div>
+
+                {/* Rescue Banner */}
+                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">
+                      {isNe ? 'आपतकालीन उद्दार ब्यानर (SOS Rescue Banner)' : 'Rescue Banner'}
+                    </span>
+                    <span className="text-[10px] text-rose-400 font-mono">SOS Emergency</span>
+                  </div>
+                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
+                    <img
+                      src={mediaSettings.banners.rescue}
+                      alt="Rescue Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <input
+                    type="url"
+                    value={mediaSettings.banners.rescue}
+                    onChange={(e) => handleBannerUrlChange('rescue', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
+                    placeholder="https://..."
+                    required
+                  />
+                </div>
+
+                {/* Complaint Banner */}
+                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">
+                      {isNe ? 'साइबर ब्युरो उजुरी ब्यानर (Police Complaint)' : 'Complaint Banner'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-mono">Legal Bureau</span>
+                  </div>
+                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
+                    <img
+                      src={mediaSettings.banners.complaint}
+                      alt="Complaint Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <input
+                    type="url"
+                    value={mediaSettings.banners.complaint}
+                    onChange={(e) => handleBannerUrlChange('complaint', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
+                    placeholder="https://..."
+                    required
+                  />
+                </div>
+
+                {/* Stats Banner */}
+                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">
+                      {isNe ? 'ठगी तथ्याङ्क ब्यानर (Scam Trends / Stats)' : 'Stats Banner'}
+                    </span>
+                    <span className="text-[10px] text-purple-400 font-mono">Analytics</span>
+                  </div>
+                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
+                    <img
+                      src={mediaSettings.banners.stats}
+                      alt="Stats Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <input
+                    type="url"
+                    value={mediaSettings.banners.stats}
+                    onChange={(e) => handleBannerUrlChange('stats', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
+                    placeholder="https://..."
+                    required
+                  />
+                </div>
               </div>
-              <h3 className="text-base font-bold text-white mt-1">{selectedIssueForEdit.title}</h3>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 text-xs text-slate-300 border border-slate-800">
-              {selectedIssueForEdit.description}
-            </div>
+            {/* 2. Tool Card Photos */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-black text-cyan-300 flex items-center gap-2">
+                <span>🛡️</span>
+                <span>{isNe ? '१३ ठगी सुरक्षा टुलहरूको तस्विर (Scam Protection Tool Photos)' : 'Tool Card Photos'}</span>
+              </h3>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold block">{isNe ? 'स्थिति (Status)' : 'Status'}</label>
-                <select
-                  value={editIssueStatus}
-                  onChange={(e) => setEditIssueStatus(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="OPEN">OPEN (सुलझाउन बाँकी)</option>
-                  <option value="INVESTIGATING">INVESTIGATING (अनुसन्धान हुँदैछ)</option>
-                  <option value="RESOLVED">RESOLVED (समाधान भयो)</option>
-                  <option value="CLOSED">CLOSED (बन्द गरियो)</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.keys(TOOL_PHOTOS).map((toolKey) => {
+                  const item = TOOL_PHOTOS[toolKey];
+                  const currentImgUrl = mediaSettings.tools[toolKey] || item.image;
+
+                  return (
+                    <div
+                      key={toolKey}
+                      className="p-3.5 rounded-2xl bg-[#0e1628] border border-slate-800 space-y-2.5 flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white line-clamp-1">
+                            {isNe ? (item.tagNe || item.altNe) : (item.tagEn || item.altEn)}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded">
+                            {toolKey}
+                          </span>
+                        </div>
+
+                        {/* Image Preview */}
+                        <div className="h-28 rounded-xl bg-slate-900 overflow-hidden relative border border-slate-800">
+                          <img
+                            src={currentImgUrl}
+                            alt={item.altNe}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-semibold text-slate-400">
+                          {isNe ? 'फोटो लिङ्क (URL)' : 'Photo URL'}
+                        </label>
+                        <input
+                          type="url"
+                          value={currentImgUrl}
+                          onChange={(e) => handleToolPhotoChange(toolKey, e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-[11px] font-mono outline-none focus:border-emerald-400"
+                          required
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold block">{isNe ? 'गम्भीरता (Severity)' : 'Severity'}</label>
-                <select
-                  value={editIssueSeverity}
-                  onChange={(e) => setEditIssueSeverity(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="CRITICAL">CRITICAL</option>
-                  <option value="HIGH">HIGH</option>
-                  <option value="MEDIUM">MEDIUM</option>
-                  <option value="LOW">LOW</option>
-                </select>
-              </div>
             </div>
 
-            <div className="space-y-1 text-xs">
-              <label className="text-slate-300 font-bold block">
-                {isNe ? 'आन्तरिक अनुसन्धान नोट (Admin Notes):' : 'Internal Investigation Notes:'}
-              </label>
-              <textarea
-                rows={2}
-                value={editAdminNotes}
-                onChange={(e) => setEditAdminNotes(e.target.value)}
-                placeholder={isNe ? 'नेपाल प्रहरी वा प्राविधिक टिमका लागि आन्तरिक टिप्पणी...' : 'Internal notes for technical / police team...'}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-              />
-            </div>
-
-            <div className="space-y-1 text-xs">
-              <label className="text-emerald-400 font-bold block">
-                {isNe ? 'ग्राहकलाई जाने आधिकारिक समाधान सन्देश (Official Reply to Citizen):' : 'Official Resolution Message to Citizen:'}
-              </label>
-              <textarea
-                rows={3}
-                value={editAdminReply}
-                onChange={(e) => setEditAdminReply(e.target.value)}
-                placeholder={isNe ? 'समस्या समाधान भएको वा के गर्ने भनेर ग्राहकलाई लेख्नुहोस्...' : 'Explain resolution or advice for the citizen...'}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
+            {/* Save Button Bar */}
+            <div className="p-4 rounded-2xl bg-[#0c1424] border border-slate-800 flex items-center justify-between gap-4">
+              <span className="text-xs text-slate-400">
+                {isNe ? 'सबै तस्विरहरू सेभ गर्नासाथ एपमा प्रत्यक्ष देखिनेछन्।' : 'Images will update live on all pages.'}
+              </span>
               <button
-                type="button"
-                onClick={() => setSelectedIssueForEdit(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+                type="submit"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow-lg active:scale-95 transition-all"
               >
-                {isNe ? 'रद्द' : 'Cancel'}
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveIssue}
-                disabled={savingIssue}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition cursor-pointer disabled:opacity-40"
-              >
-                {savingIssue ? (isNe ? 'अपडेट हुँदैछ...' : 'Updating...') : isNe ? 'परिवर्तन सुरक्षित गर्नुहोस्' : 'Save Resolution'}
+                <Save className="w-4 h-4" />
+                <span>{isNe ? 'तस्विरहरू सेभ गर्नुहोस्' : 'Save Images'}</span>
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>

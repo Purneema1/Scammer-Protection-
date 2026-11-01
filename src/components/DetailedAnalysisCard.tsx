@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { DetailedAnalysisData, Language } from '../types';
+import { toNepaliDigits } from '../utils/numberFormat';
 
 interface DetailedAnalysisCardProps {
   data?: DetailedAnalysisData;
@@ -76,7 +77,7 @@ export const DetailedAnalysisCard: React.FC<DetailedAnalysisCardProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400 inline" />
               </h3>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
-                {confidenceScore}% {isNe ? 'विश्वसनीयता' : 'Confidence'}
+                {isNe ? toNepaliDigits(confidenceScore) : confidenceScore}% {isNe ? 'विश्वसनीयता' : 'Confidence'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -118,8 +119,8 @@ export const DetailedAnalysisCard: React.FC<DetailedAnalysisCardProps> = ({
                 </p>
               </div>
               <div className="flex items-baseline gap-1 text-cyan-400 font-mono font-bold text-lg sm:text-xl self-start sm:self-auto">
-                <span>{confidenceScore}%</span>
-                <span className="text-xs text-slate-500 font-normal">/ 100%</span>
+                <span>{isNe ? toNepaliDigits(confidenceScore) : confidenceScore}%</span>
+                <span className="text-xs text-slate-500 font-normal">/ {isNe ? '१००%' : '100%'}</span>
               </div>
             </div>
 
@@ -142,7 +143,7 @@ export const DetailedAnalysisCard: React.FC<DetailedAnalysisCardProps> = ({
                 </span>
               </h4>
               <span className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
-                {suspiciousEntities.length} {isNe ? 'तत्व फेला पर्यो' : 'Entities Found'}
+                {isNe ? toNepaliDigits(suspiciousEntities.length) : suspiciousEntities.length} {isNe ? 'तत्व फेला पर्यो' : 'Entities Found'}
               </span>
             </div>
 

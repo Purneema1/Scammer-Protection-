@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Language, CustomerFeedback, CustomerIssue, CustomerComment } from '../types';
+import { getStoredUser } from '../utils/auth';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -64,6 +65,13 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
     if (isOpen) {
       setActiveTab(defaultTab);
       loadComments();
+      const user = getStoredUser();
+      if (user) {
+        if (!customerName) setCustomerName(user.name);
+        if (!customerEmail) setCustomerEmail(user.email);
+        if (!issueContact) setIssueContact(user.phone || user.email);
+        if (!commentAuthor) setCommentAuthor(user.name);
+      }
     }
   }, [isOpen, defaultTab]);
 

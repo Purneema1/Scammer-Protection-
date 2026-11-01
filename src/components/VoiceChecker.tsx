@@ -25,6 +25,7 @@ import {
   clearRecentChecks,
   HistoryEntry,
 } from '../utils/localHistory';
+import { getUserAuthHeaders, getUserInfoPayload } from '../utils/auth';
 import {
   isSpeechRecognitionSupported,
   speakVerdict,
@@ -190,10 +191,14 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
     try {
       const response = await fetch('/api/analyze-message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
         body: JSON.stringify({
           message: transcript.trim(),
           lang,
+          userInfo: getUserInfoPayload(),
         }),
       });
 

@@ -15,6 +15,7 @@ import {
 import { t } from '../translations';
 import { Language, ScamEncyclopediaItem } from '../types';
 import { scamEncyclopedia } from '../data/scamLibrary';
+import { toNepaliDigits } from '../utils/numberFormat';
 
 interface ScamLibraryProps {
   lang: Language;
@@ -68,8 +69,8 @@ export const ScamLibrary: React.FC<ScamLibraryProps> = ({ lang }) => {
               {currentT.librarySubtitle}
             </p>
           </div>
-          <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 font-medium self-start sm:self-auto">
-            {scamEncyclopedia.length} {isNe ? 'प्रकारका ठगीहरू' : 'Scam Categories'}
+          <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 font-medium self-start sm:self-auto font-mono">
+            {isNe ? toNepaliDigits(scamEncyclopedia.length) : scamEncyclopedia.length} {isNe ? 'प्रकारका ठगीहरू' : 'Scam Categories'}
           </span>
         </div>
 

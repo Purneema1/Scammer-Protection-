@@ -66,28 +66,53 @@ export const ComplaintGenerator: React.FC<ComplaintGeneratorProps> = ({ lang }) 
 
   // Prefill realistic test data
   const handlePrefillSample = () => {
-    setFormData({
-      applicantName: 'राम प्रसाद शर्मा',
-      applicantPhone: '9841234567',
-      applicantAddress: 'काठमाडौँ महानगरपालिका-३२, कोटेश्वर',
-      applicantCitizenship: '२७-०१-७५-१२३४५',
-      incidentDate: '२०८३-०७-१२',
-      incidentTime: '१५:००',
-      platformUsed: 'WhatsApp / Telegram',
-      scammerPhone: '9801299999',
-      scammerAccount: 'eSewa ID: 9801299999 / Nabil Bank A/C: 0192837465001',
-      scammerNameOrHandle: '“KBC Lottery Officer Rahul” / Telegram @WinEasy2026',
-      amountLost: 'रु. ५०,००० (पचास हजार रुपैयाँ मात्र)',
-      transactionId: 'TXN-982348719283',
-      paymentMedium: 'eSewa & Mobile Banking',
-      description:
-        'मिति २०८३/०७/१२ गते मलाई अज्ञात नम्बरबाट फोन गरी तपाईंले KBC लक्की ड्र मार्फत रु. २५ लाखको पुरस्कार जित्नुभएको छ भनी प्रोसेसिङ शुल्क र भन्सार कर बापत रकम जम्मा गर्न दबाब दिइयो। मैले विश्वासमा परी रु. ५०,००० निजको eSewa र बैंक खातामा पठाएपछि निजले फोन स्विच अफ गरी मलाई ब्लक गर्‍यो। अतः आवश्यक कानुनी अनुसन्धान गरी रकम रोक्का तथा फिर्ता दिलाई पाउँ।',
-      evidenceItems: [
-        'कुराकानीको स्क्रिनसट (Chat Screenshots)',
-        'बैंक/वालेटको भुक्तानी रसिद (Payment Receipt Voucher)',
-        'फोन नम्बर तथा सामाजिक सञ्जालको प्रोफाइल लिंक (Profile Link & Number)',
-      ],
-    });
+    if (isNe) {
+      setFormData({
+        applicantName: 'राम प्रसाद शर्मा',
+        applicantPhone: '9841234567',
+        applicantAddress: 'काठमाडौँ महानगरपालिका-३२, कोटेश्वर',
+        applicantCitizenship: '२७-०१-७५-१२३४५',
+        incidentDate: '२०८३-०७-१२',
+        incidentTime: '१५:००',
+        platformUsed: 'WhatsApp / Telegram',
+        scammerPhone: '9801299999',
+        scammerAccount: 'eSewa ID: 9801299999 / Nabil Bank A/C: 0192837465001',
+        scammerNameOrHandle: '“KBC Lottery Officer Rahul” / Telegram @WinEasy2026',
+        amountLost: 'रु. ५०,००० (पचास हजार रुपैयाँ मात्र)',
+        transactionId: 'TXN-982348719283',
+        paymentMedium: 'eSewa & Mobile Banking',
+        description:
+          'मिति २०८३/०७/१२ गते मलाई अज्ञात नम्बरबाट फोन गरी तपाईंले KBC लक्की ड्र मार्फत रु. २५ लाखको पुरस्कार जित्नुभएको छ भनी प्रोसेसिङ शुल्क र भन्सार कर बापत रकम जम्मा गर्न दबाब दिइयो। मैले विश्वासमा परी रु. ५०,००० निजको eSewa र बैंक खातामा पठाएपछि निजले फोन स्विच अफ गरी मलाई ब्लक गर्‍यो। अतः आवश्यक कानुनी अनुसन्धान गरी रकम रोक्का तथा फिर्ता दिलाई पाउँ।',
+        evidenceItems: [
+          'कुराकानीको स्क्रिनसट (Chat Screenshots)',
+          'बैंक/वालेटको भुक्तानी रसिद (Payment Receipt Voucher)',
+          'फोन नम्बर तथा सामाजिक सञ्जालको प्रोफाइल लिंक (Profile Link & Number)',
+        ],
+      });
+    } else {
+      setFormData({
+        applicantName: 'Ram Prasad Sharma',
+        applicantPhone: '9841234567',
+        applicantAddress: 'Kathmandu-32, Koteshwor, Nepal',
+        applicantCitizenship: '27-01-75-12345',
+        incidentDate: '2026-10-15',
+        incidentTime: '15:00',
+        platformUsed: 'WhatsApp / Telegram',
+        scammerPhone: '9801299999',
+        scammerAccount: 'eSewa ID: 9801299999 / Nabil Bank A/C: 0192837465001',
+        scammerNameOrHandle: '"KBC Lottery Officer Rahul" / Telegram @WinEasy2026',
+        amountLost: 'NPR 50,000 (Fifty Thousand Rupees)',
+        transactionId: 'TXN-982348719283',
+        paymentMedium: 'eSewa & Mobile Banking',
+        description:
+          'On 2026-10-15, I received a call claiming I had won an NPR 2,500,000 lottery award and had to remit processing tax charges of NPR 50,000. Believing the claim, I transferred the amount to their wallet and account. The suspect immediately blocked my number and vanished. Please initiate urgent formal investigation and freeze the recipient account.',
+        evidenceItems: [
+          'Chat Screenshots & Voice Notes',
+          'Wallet & Mobile Banking Transaction Slips',
+          'Suspect Phone Number & Profile URLs',
+        ],
+      });
+    }
   };
 
   const handleGenerate = () => {
