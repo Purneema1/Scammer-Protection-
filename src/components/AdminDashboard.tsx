@@ -16,6 +16,8 @@ import {
   Play,
   AlertCircle,
   Sparkles,
+  Palette,
+  Type,
 } from 'lucide-react';
 import { Language } from '../types';
 import {
@@ -36,6 +38,16 @@ import {
   AppMediaSettings,
   ScamVideoItem,
 } from '../utils/mediaStorage';
+import {
+  THEME_PRESETS,
+  FONT_OPTIONS,
+  getAppThemeSettings,
+  saveAppThemeSettings,
+  resetAppThemeSettings,
+  AppThemeSettings,
+  ThemeId,
+  FontFamilyId,
+} from '../utils/themeStorage';
 import { TOOL_PHOTOS } from '../constants/toolImages';
 
 interface AdminDashboardProps {
@@ -43,7 +55,7 @@ interface AdminDashboardProps {
   onNavigateHome: () => void;
 }
 
-type AdminSection = 'content' | 'video' | 'image';
+type AdminSection = 'content' | 'video' | 'image' | 'theme';
 
 export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
   const isNe = lang === 'ne';
@@ -64,6 +76,9 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
   const [editingVideo, setEditingVideo] = useState<ScamVideoItem | null>(null);
   const [isAddingVideo, setIsAddingVideo] = useState(false);
 
+  // Theme & Font state
+  const [themeSettings, setThemeSettings] = useState<AppThemeSettings>(() => getAppThemeSettings());
+
   // Video editor modal form
   const [videoForm, setVideoForm] = useState<Partial<ScamVideoItem>>({
     titleNe: '',
@@ -81,6 +96,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
     setContentForm(getAppContentSettings());
     setMediaSettings(getAppMediaSettings());
     setVideoList(getAppVideos());
+    setThemeSettings(getAppThemeSettings());
   }, []);
 
   const showToast = (message: string) => {
@@ -88,6 +104,38 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
     setTimeout(() => {
       setSaveToast(null);
     }, 3500);
+  };
+
+  // ----------------------------------------------------
+  // THEME & FONT MANAGEMENT HANDLERS
+  // ----------------------------------------------------
+  const handleSelectThemePreset = (themeId: ThemeId) => {
+    const updated = { ...themeSettings, activeThemeId: themeId };
+    setThemeSettings(updated);
+    saveAppThemeSettings(updated);
+    showToast(isNe ? 'थिम सफलतापूर्वक लागू गरियो!' : 'Theme applied successfully!');
+  };
+
+  const handleSelectFont = (fontId: FontFamilyId) => {
+    const updated = { ...themeSettings, activeFontId: fontId };
+    setThemeSettings(updated);
+    saveAppThemeSettings(updated);
+    showToast(isNe ? 'फन्ट सफलतापूर्वक परिवर्तन गरियो!' : 'Font style updated successfully!');
+  };
+
+  const handleCustomAccentColor = (colorHex: string) => {
+    const updated = { ...themeSettings, customPrimaryColor: colorHex };
+    setThemeSettings(updated);
+    saveAppThemeSettings(updated);
+    showToast(isNe ? 'कस्टम रङ लागू गरियो!' : 'Custom accent color applied!');
+  };
+
+  const handleResetTheme = () => {
+    if (window.confirm(isNe ? 'के तपाईं थिम सेटिङहरू पूर्वनिर्धारितमा फर्काउन चाहनुहुन्छ?' : 'Reset theme settings to default?')) {
+      const def = resetAppThemeSettings();
+      setThemeSettings(def);
+      showToast(isNe ? 'थिम पूर्वनिर्धारितमा फर्कियो!' : 'Theme settings reset to default!');
+    }
   };
 
   // Helper to extract YouTube video ID if full URL is entered
@@ -260,15 +308,19 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                   ? isNe
                     ? 'भिडियो'
                     : 'Video'
+                  : activeSection === 'image'
+                  ? isNe
+                    ? 'तस्विर'
+                    : 'Image'
                   : isNe
-                  ? 'तस्विर'
-                  : 'Image'}
+                  ? 'थिम तथा फन्ट'
+                  : 'Theme & Font'}
               </span>
             </h1>
             <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">
               {isNe
-                ? 'सामग्री (Content), भिडियो (Video) र तस्विर (Image) मात्र व्यवस्थापन गर्नुहोस्'
-                : 'Directly manage app content, videos, and images'}
+                ? 'सामग्री (Content), भिडियो (Video), तस्विर (Image) र थिम (Theme) व्यवस्थापन गर्नुहोस्'
+                : 'Directly manage app content, videos, images, and visual themes'}
             </p>
           </div>
         </div>
@@ -411,6 +463,32 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </div>
                   </div>
                   {activeSection === 'image' && <span className="text-emerald-400 font-black">●</span>}
+                </button>
+
+                {/* 4. Theme & Font Design */}
+                <button
+                  onClick={() => {
+                    setActiveSection('theme');
+                    setMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl font-bold text-xs sm:text-sm text-left transition-all cursor-pointer ${
+                    activeSection === 'theme'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 shadow-md'
+                      : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 border border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Palette className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <div className="font-black">
+                        {isNe ? '४. थिम तथा फन्ट डिजाइन (Theme)' : '4. Theme & Font Styling'}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal">
+                        {isNe ? '१० उज्यालो थिम, रङ र अक्षर फन्ट' : '10 bright themes, colors & fonts'}
+                      </div>
+                    </div>
+                  </div>
+                  {activeSection === 'theme' && <span className="text-amber-400 font-black">●</span>}
                 </button>
               </nav>
             </div>
@@ -1146,6 +1224,453 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* SECTION 4: THEME & FONT DESIGN (१० उज्यालो थिम तथा फन्ट) */}
+      {/* ---------------------------------------------------- */}
+      {activeSection === 'theme' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Section banner */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#1f1b0f] via-[#16130d] to-[#1f1b0f] border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                <Palette className="w-4 h-4" />
+                <span>{isNe ? 'थिम तथा दृश्य शैली व्यवस्थापन' : 'Theme & Visual Styling'}</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-white">
+                {isNe ? '१० वटा फरक उज्यालो थिमहरू र फन्ट चयन' : '10 Distinct Themes & Font Customizer'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {isNe
+                  ? 'उज्यालो (Daylight) वा डार्क थिम छान्नुहोस्, फन्ट बदल्नुहोस् र मुख्य रङ अनुकूलन गर्नुहोस्।'
+                  : 'Select daylight bright or dark themes, change typography fonts, and customize brand accent.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleResetTheme}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer active:scale-95 transition-all"
+              >
+                <RotateCcw className="w-4 h-4 text-amber-400" />
+                <span>{isNe ? 'पूर्वनिर्धारितमा फर्काउनुहोस्' : 'Reset Defaults'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Current Live Theme Status Card */}
+          <div className="p-5 rounded-3xl bg-[#0e1628] border border-cyan-500/30 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                  {isNe ? 'हाल सक्रिय थिम' : 'Currently Active Theme'}
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                  <span>
+                    {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.nameNe ||
+                      'उज्यालो हिमाल'}
+                  </span>
+                  <span className="text-xs text-slate-400 font-normal">
+                    (
+                    {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.nameEn ||
+                      'Himalayan Snow Bright'}
+                    )
+                  </span>
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                    THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.mode === 'light'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                  }`}
+                >
+                  {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.mode === 'light'
+                    ? '☀️ उज्यालो थिम (Light Mode)'
+                    : '🌙 डार्क थिम (Dark Mode)'}
+                </span>
+
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
+                  {FONT_OPTIONS.find((f) => f.id === themeSettings.activeFontId)?.nameNe?.split(' ')[0] ||
+                    'मुक्ता'}
+                </span>
+              </div>
+            </div>
+
+            {/* Color chips preview */}
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs">
+              {(() => {
+                const activePreset =
+                  THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId) || THEME_PRESETS[0];
+                return (
+                  <>
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 block">पृष्ठभूमि (Background)</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          style={{ backgroundColor: activePreset.previewColors.bg }}
+                        />
+                        <span className="font-mono text-[11px] font-bold text-slate-200">
+                          {activePreset.previewColors.bg}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 block">कार्ड (Surface Card)</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          style={{ backgroundColor: activePreset.previewColors.card }}
+                        />
+                        <span className="font-mono text-[11px] font-bold text-slate-200">
+                          {activePreset.previewColors.card}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 block">मुख्य रङ (Primary)</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          style={{
+                            backgroundColor:
+                              themeSettings.customPrimaryColor || activePreset.previewColors.primary,
+                          }}
+                        />
+                        <span className="font-mono text-[11px] font-bold text-cyan-300">
+                          {themeSettings.customPrimaryColor || activePreset.previewColors.primary}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 block">अक्षर (Text Main)</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          style={{ backgroundColor: activePreset.previewColors.text }}
+                        />
+                        <span className="font-mono text-[11px] font-bold text-slate-200">
+                          {activePreset.previewColors.text}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 block">किनारा (Border)</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          style={{ backgroundColor: activePreset.previewColors.border }}
+                        />
+                        <span className="font-mono text-[11px] font-bold text-slate-200">
+                          {activePreset.previewColors.border}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 block">कार्ड स्टाइल (Radius)</span>
+                      <span className="font-mono text-xs font-bold text-emerald-400 block pt-0.5">
+                        {themeSettings.cardRoundness}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* 1. TEN RICH DISTINCT THEMES GRID */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>
+                  {isNe
+                    ? '१० वटा थिमहरू (विशेष उज्यालो तथा सफा विकल्पहरू)'
+                    : '10 Distinct Themes (Bright & Clean Options)'}
+                </span>
+              </h3>
+              <span className="text-xs text-slate-400">
+                {isNe ? 'क्लिक गर्नासाथ तत्काल परिवर्तन हुनेछ' : 'Changes apply immediately on click'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {THEME_PRESETS.map((preset, index) => {
+                const isActive = themeSettings.activeThemeId === preset.id;
+                return (
+                  <div
+                    key={preset.id}
+                    className={`p-4 rounded-3xl transition-all border flex flex-col justify-between gap-3 ${
+                      isActive
+                        ? 'bg-[#121c32] border-cyan-400 shadow-xl shadow-cyan-500/10 ring-2 ring-cyan-400/40'
+                        : 'bg-[#0e1628] hover:bg-[#121a30] border-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px] flex items-center justify-center">
+                              {index + 1}
+                            </span>
+                            <h4 className="text-sm font-black text-white">{preset.nameNe}</h4>
+                          </div>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            {preset.nameEn}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            preset.mode === 'light'
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                              : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                          }`}
+                        >
+                          {preset.mode === 'light' ? '☀️ उज्यालो (Light)' : '🌙 डार्क (Dark)'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {isNe ? preset.taglineNe : preset.taglineEn}
+                      </p>
+
+                      {/* Color Palette Preview Bar */}
+                      <div className="p-2 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {isNe ? 'रङ प्यालेट:' : 'Color Palette:'}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-5 h-5 rounded-lg border border-slate-600 shadow-sm"
+                            style={{ backgroundColor: preset.previewColors.bg }}
+                            title="Background"
+                          />
+                          <span
+                            className="w-5 h-5 rounded-lg border border-slate-600 shadow-sm"
+                            style={{ backgroundColor: preset.previewColors.card }}
+                            title="Card Surface"
+                          />
+                          <span
+                            className="w-5 h-5 rounded-lg border border-slate-600 shadow-sm"
+                            style={{ backgroundColor: preset.previewColors.primary }}
+                            title="Primary Accent"
+                          />
+                          <span
+                            className="w-5 h-5 rounded-lg border border-slate-600 shadow-sm"
+                            style={{ backgroundColor: preset.previewColors.text }}
+                            title="Text Color"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleSelectThemePreset(preset.id)}
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                        isActive
+                          ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      {isActive ? (
+                        <>
+                          <Check className="w-4 h-4 text-slate-950 font-black" />
+                          <span>{isNe ? '✓ सक्रिय थिम' : 'Active Theme'}</span>
+                        </>
+                      ) : (
+                        <span>{isNe ? 'यो थिम लागू गर्नुहोस्' : 'Apply This Theme'}</span>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. TEXT FONT TYPOGRAPHY SELECTION */}
+          <div className="space-y-4 pt-4 border-t border-slate-800">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Type className="w-4 h-4 text-cyan-400" />
+                <span>
+                  {isNe
+                    ? 'अक्षर फन्ट छनोट (Typography Font Styles)'
+                    : 'Typography & Text Font Styles'}
+                </span>
+              </h3>
+              <span className="text-xs text-slate-400">
+                {isNe ? 'नेपाली र अंग्रेजी दुवैमा स्पष्ट' : 'Optimized for Nepali & English'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {FONT_OPTIONS.map((font) => {
+                const isFontActive = themeSettings.activeFontId === font.id;
+                return (
+                  <div
+                    key={font.id}
+                    onClick={() => handleSelectFont(font.id)}
+                    className={`p-4 rounded-3xl transition-all border cursor-pointer space-y-3 ${
+                      isFontActive
+                        ? 'bg-[#121c32] border-cyan-400 shadow-xl shadow-cyan-500/10 ring-2 ring-cyan-400/40'
+                        : 'bg-[#0e1628] hover:bg-[#121a30] border-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black text-white">{font.nameNe}</h4>
+                      {isFontActive && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500 text-slate-950">
+                          {isNe ? 'सक्रिय' : 'Active'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1.5"
+                      style={{ fontFamily: font.fontFamily }}
+                    >
+                      <p className="text-sm font-bold text-white leading-snug">
+                        {font.sampleNe}
+                      </p>
+                      <p className="text-xs text-slate-300">
+                        {font.sampleEn}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={`w-full py-1.5 rounded-xl font-bold text-xs cursor-pointer transition-all ${
+                        isFontActive
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-black'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {isFontActive ? (isNe ? '✓ सक्रिय छ' : 'Selected') : (isNe ? 'फन्ट छान्नुहोस्' : 'Select Font')}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. BRAND ACCENT COLOR FINE-TUNING */}
+          <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
+            <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <Palette className="w-4 h-4 text-emerald-400" />
+              <span>{isNe ? 'मुख्य सुरक्षा रङ (Accent Color Picker)' : 'Primary Accent Color'}</span>
+            </h3>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {[
+                { name: 'Sky Blue', hex: '#0284c7' },
+                { name: 'Emerald', hex: '#059669' },
+                { name: 'Golden Amber', hex: '#d97706' },
+                { name: 'Royal Blue', hex: '#2563eb' },
+                { name: 'Rose', hex: '#e11d48' },
+                { name: 'Lavender', hex: '#7c3aed' },
+                { name: 'Teal Arctic', hex: '#0891b2' },
+                { name: 'Crimson', hex: '#dc2626' },
+                { name: 'Neon Cyan', hex: '#06b6d4' },
+                { name: 'Slate Gray', hex: '#334155' },
+              ].map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => handleCustomAccentColor(c.hex)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 cursor-pointer transition-all active:scale-95"
+                >
+                  <span
+                    className="w-4 h-4 rounded-full border border-slate-600 shrink-0"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span className="text-xs font-bold text-slate-300">{c.name}</span>
+                </button>
+              ))}
+
+              {/* Custom Color Input */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700">
+                <span className="text-xs font-bold text-slate-400">
+                  {isNe ? 'कस्टम रङ:' : 'Custom:'}
+                </span>
+                <input
+                  type="color"
+                  value={themeSettings.customPrimaryColor || '#0284c7'}
+                  onChange={(e) => handleCustomAccentColor(e.target.value)}
+                  className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
+                  title={isNe ? 'आफ्नै रङ छान्नुहोस्' : 'Pick custom color'}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. CARD CORNER ROUNDNESS STYLES */}
+          <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
+            <h3 className="text-sm font-black text-white">
+              {isNe ? 'कार्ड कुना शैली (Card Corner Radius Style)' : 'Card Roundness Style'}
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(
+                [
+                  { id: 'rounded-xl', nameNe: 'मध्यम (Moderate - 12px)', nameEn: 'Moderate (rounded-xl)' },
+                  { id: 'rounded-2xl', nameNe: 'आधुनिक मानक (Modern - 16px)', nameEn: 'Modern Standard (rounded-2xl)' },
+                  { id: 'rounded-3xl', nameNe: 'सफ्ट कर्भ (Soft - 24px)', nameEn: 'Soft Curve (rounded-3xl)' },
+                ] as const
+              ).map((r) => {
+                const isSelected = themeSettings.cardRoundness === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...themeSettings, cardRoundness: r.id };
+                      setThemeSettings(updated);
+                      saveAppThemeSettings(updated);
+                      showToast(isNe ? 'कार्ड शैली परिवर्तन गरियो!' : 'Card style updated!');
+                    }}
+                    className={`p-3 rounded-2xl border text-xs font-bold text-left cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400'
+                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border-slate-700'
+                    }`}
+                  >
+                    <div>{r.nameNe}</div>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">{r.nameEn}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom Save Bar */}
+          <div className="p-4 rounded-2xl bg-[#0c1424] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span className="text-xs text-slate-400">
+              {isNe
+                ? '✓ छानिएका थिम र फन्ट सेटिङहरू एपमा तुरुन्तै लागू भइसकेका छन्।'
+                : '✓ Selected theme and font changes have been saved and applied.'}
+            </span>
+            <button
+              onClick={() => {
+                saveAppThemeSettings(themeSettings);
+                showToast(isNe ? 'थिम र फन्ट सुरक्षित गरियो!' : 'Theme settings confirmed and saved!');
+              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-teal-400 hover:from-amber-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow-lg active:scale-95 transition-all shrink-0"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isNe ? 'थिम र फन्ट सुरक्षित गर्नुहोस्' : 'Save Theme & Fonts'}</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -46,6 +46,7 @@ import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { BANNERS, TOOL_PHOTOS } from './constants/toolImages';
 import { getAppMediaSettings, AppMediaSettings } from './utils/mediaStorage';
 import { getAppContentSettings, AppContentSettings } from './utils/contentStorage';
+import { getAppThemeSettings, applyThemeToDOM, AppThemeSettings } from './utils/themeStorage';
 import { Language, UserAccount } from './types';
 import { t } from './translations';
 import { getStoredUser, setStoredUser } from './utils/auth';
@@ -67,9 +68,53 @@ export type PageView =
   | 'privacy'
   | 'admin';
 
+// Helper to determine initial page from URL path or hash (e.g. /admin or #/admin)
+function getInitialPageFromUrl(): PageView {
+  if (typeof window === 'undefined') return 'home';
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  const search = new URLSearchParams(window.location.search);
+
+  if (
+    path === '/admin' ||
+    path.startsWith('/admin') ||
+    path.endsWith('/admin') ||
+    hash === '#/admin' ||
+    hash.includes('admin') ||
+    search.get('page') === 'admin'
+  ) {
+    return 'admin';
+  }
+
+  // Support other direct routes if entered
+  const validPages: PageView[] = [
+    'tools',
+    'video',
+    'message',
+    'link',
+    'shopping',
+    'photo',
+    'voice',
+    'chat',
+    'rescue',
+    'complaint',
+    'library',
+    'privacy',
+    'admin',
+  ];
+
+  for (const page of validPages) {
+    if (path.includes(`/${page}`) || hash.includes(`#/${page}`) || search.get('page') === page) {
+      return page;
+    }
+  }
+
+  return 'home';
+}
+
 export default function App() {
   const [lang, setLang] = useState<Language>('ne');
-  const [currentPage, setCurrentPage] = useState<PageView>('home');
+  const [currentPage, setCurrentPage] = useState<PageView>(getInitialPageFromUrl);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackContext, setFeedbackContext] = useState('');
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => getStoredUser());
@@ -77,12 +122,16 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [mediaSettings, setMediaSettings] = useState<AppMediaSettings>(() => getAppMediaSettings());
   const [contentSettings, setContentSettings] = useState<AppContentSettings>(() => getAppContentSettings());
+  const [, setThemeSettings] = useState<AppThemeSettings>(() => getAppThemeSettings());
 
   const currentT = t[lang];
   const isNe = lang === 'ne';
 
-  // Listen to cross-component auth, media, and content state changes
+  // Listen to cross-component auth, media, content, theme state changes & URL history changes
   useEffect(() => {
+    // Ensure active theme is applied to DOM on mount
+    applyThemeToDOM();
+
     const handleAuthChange = () => {
       setCurrentUser(getStoredUser());
     };
@@ -92,13 +141,29 @@ export default function App() {
     const handleContentChange = () => {
       setContentSettings(getAppContentSettings());
     };
+    const handleThemeChange = () => {
+      setThemeSettings(getAppThemeSettings());
+    };
+
+    const handleLocationChange = () => {
+      const page = getInitialPageFromUrl();
+      setCurrentPage(page);
+    };
+
     window.addEventListener('auth_state_changed', handleAuthChange);
     window.addEventListener('app_media_changed', handleMediaChange);
     window.addEventListener('app_content_changed', handleContentChange);
+    window.addEventListener('app_theme_changed', handleThemeChange);
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+
     return () => {
       window.removeEventListener('auth_state_changed', handleAuthChange);
       window.removeEventListener('app_media_changed', handleMediaChange);
       window.removeEventListener('app_content_changed', handleContentChange);
+      window.removeEventListener('app_theme_changed', handleThemeChange);
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
     };
   }, []);
 
@@ -108,6 +173,14 @@ export default function App() {
 
   const navigateTo = (page: PageView) => {
     setCurrentPage(page);
+    try {
+      const targetUrl = page === 'home' ? '/' : `/${page}`;
+      if (window.location.pathname !== targetUrl) {
+        window.history.pushState({ page }, '', targetUrl);
+      }
+    } catch {
+      // Ignore pushState failure in restrictive iframes
+    }
     // User requested: "tools ma click garda tools ma mathi scroll hataunu hosh"
     if (page !== 'tools') {
       window.scrollTo(0, 0);

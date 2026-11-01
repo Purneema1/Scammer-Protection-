@@ -1,25 +1,136 @@
 @import "tailwindcss";
 
+:root {
+  --app-bg: #f8fafc;
+  --app-card-bg: #ffffff;
+  --app-card-subtle: #f1f5f9;
+  --app-header-bg: rgba(255, 255, 255, 0.95);
+  --app-border: #e2e8f0;
+  --app-border-highlight: rgba(2, 132, 199, 0.4);
+  --app-text-main: #0f172a;
+  --app-text-muted: #334155;
+  --app-text-subtle: #64748b;
+  --app-accent-primary: #0284c7;
+  --app-accent-hover: #0369a1;
+  --app-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+  --app-font-family: 'Mukta', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', 'Mukta', system-ui, -apple-system, sans-serif;
-    background-color: #0b1220;
-    color: #f1f5f9;
+    font-family: var(--app-font-family);
+    background-color: var(--app-bg);
+    color: var(--app-text-main);
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 }
 
-/* Custom scrollbars for slick dark-mode UI */
+/* ------------------------------------------------------------------ */
+/* LIGHT / UJALO THEME OVERRIDES (CRISP, CONTRAST-ENHANCED & MODERN)  */
+/* ------------------------------------------------------------------ */
+[data-theme-mode="light"] body {
+  background-color: var(--app-bg) !important;
+  color: var(--app-text-main) !important;
+}
+
+[data-theme-mode="light"] header {
+  background-color: var(--app-header-bg) !important;
+  border-color: var(--app-border) !important;
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme-mode="light"] .bg-\[\#0b1220\],
+[data-theme-mode="light"] .bg-\[\#0b1220\]\/95 {
+  background-color: var(--app-bg) !important;
+}
+
+[data-theme-mode="light"] .bg-\[\#0e1628\],
+[data-theme-mode="light"] .bg-\[\#0c1524\],
+[data-theme-mode="light"] .bg-\[\#090f1d\],
+[data-theme-mode="light"] .bg-\[\#090f1d\]\/95,
+[data-theme-mode="light"] .bg-slate-900,
+[data-theme-mode="light"] .bg-slate-900\/80,
+[data-theme-mode="light"] .bg-slate-900\/90,
+[data-theme-mode="light"] .bg-slate-950 {
+  background-color: var(--app-card-bg) !important;
+  box-shadow: var(--app-shadow) !important;
+}
+
+[data-theme-mode="light"] .bg-\[\#101c34\],
+[data-theme-mode="light"] .bg-\[\#142340\],
+[data-theme-mode="light"] .bg-\[\#111c33\],
+[data-theme-mode="light"] .bg-\[\#0d1f33\],
+[data-theme-mode="light"] .bg-\[\#091524\],
+[data-theme-mode="light"] .bg-\[\#0f243a\] {
+  background-color: var(--app-card-subtle) !important;
+}
+
+/* Border adaptations in light mode */
+[data-theme-mode="light"] .border-slate-800,
+[data-theme-mode="light"] .border-slate-800\/80,
+[data-theme-mode="light"] .border-slate-800\/90,
+[data-theme-mode="light"] .border-slate-700,
+[data-theme-mode="light"] .border-slate-700\/80,
+[data-theme-mode="light"] .border-slate-900 {
+  border-color: var(--app-border) !important;
+}
+
+/* Text adaptations in light mode */
+[data-theme-mode="light"] .text-white {
+  color: var(--app-text-main) !important;
+}
+
+[data-theme-mode="light"] .text-slate-100,
+[data-theme-mode="light"] .text-slate-200,
+[data-theme-mode="light"] .text-slate-300 {
+  color: var(--app-text-muted) !important;
+}
+
+[data-theme-mode="light"] .text-slate-400,
+[data-theme-mode="light"] .text-slate-500 {
+  color: var(--app-text-subtle) !important;
+}
+
+/* Form inputs & textareas in light mode */
+[data-theme-mode="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme-mode="light"] textarea,
+[data-theme-mode="light"] select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: var(--app-border) !important;
+}
+
+[data-theme-mode="light"] input::placeholder,
+[data-theme-mode="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Bottom mobile navigation in light mode */
+[data-theme-mode="light"] nav[aria-label="Mobile Navigation"] {
+  background-color: var(--app-header-bg) !important;
+  border-color: var(--app-border) !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
+}
+
+[data-theme-mode="dark"] ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+[data-theme-mode="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
 }
