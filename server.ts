@@ -482,19 +482,40 @@ Return valid structured JSON matching schema.`;
   }
 });
 
-// Photo / Screenshot Scam Analysis Endpoint (Multimodal Gemini Vision)
+// Photo / Screenshot Scam Analysis Endpoint (Multimodal Gemini Vision + Robust Fallback)
 app.post('/api/analyze-image', async (req, res) => {
   try {
     const { imageBase64, mimeType = 'image/jpeg', notes = '', lang = 'ne' } = req.body;
     const userMeta = extractCheckUserInfo(req);
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'Image base64 is required' });
+
+    if (!imageBase64 || typeof imageBase64 !== 'string' || imageBase64.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'Image data is required' });
     }
 
-    const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
-    const isNepali = lang === 'ne';
+    // Clean base64 string accurately regardless of header variants or whitespace
+    let cleanBase64 = imageBase64;
+    let detectedMime = mimeType;
 
-    if (ai) {
+    const commaIndex = imageBase64.indexOf(',');
+    if (commaIndex !== -1) {
+      const header = imageBase64.slice(0, commaIndex);
+      const mimeMatch = header.match(/^data:([^;]+);/);
+      if (mimeMatch && mimeMatch[1]) {
+        detectedMime = mimeMatch[1];
+      }
+      cleanBase64 = imageBase64.slice(commaIndex + 1);
+    }
+    cleanBase64 = cleanBase64.replace(/\s+/g, '');
+
+    const isNepali = lang === 'ne';
+    const isSvg = detectedMime.includes('svg') || cleanBase64.includes('PHN2Zw') || imageBase64.includes('<svg');
+
+    // Only pass to Gemini inlineData if raster image format and AI is enabled
+    if (ai && !isSvg && cleanBase64.length > 50) {
+      const safeMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic'].includes(detectedMime)
+        ? detectedMime
+        : 'image/jpeg';
+
       const prompt = `You are a cybersecurity expert analyzing a user-uploaded screenshot (Facebook Marketplace ad, TikTok offer, WhatsApp/SMS chat, fake eSewa receipt, or lottery message).
 User notes: "${notes || 'None'}"
 Language: ${isNepali ? 'Nepali (नेपाली)' : 'English'}.
@@ -507,79 +528,85 @@ Carefully analyze:
 5. Explain clearly in ${isNepali ? 'Nepali' : 'English'} why it is suspicious and what protective action to take before sending money.
 Return structured JSON.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                inlineData: {
-                  mimeType,
-                  data: cleanBase64,
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: safeMime,
+                    data: cleanBase64,
+                  },
                 },
-              },
-              { text: prompt },
-            ],
-          },
-        ],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              riskLevel: { type: Type.STRING, description: 'HIGH_RISK, CAUTION, or LOW_RISK' },
-              score: { type: Type.NUMBER, description: 'Risk score 0-100' },
-              scamType: { type: Type.STRING, description: 'Scam type classification' },
-              extractedText: { type: Type.STRING, description: 'Text extracted from the screenshot' },
-              summary: { type: Type.STRING, description: 'Verdict summary' },
-              visualClues: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Visual indicators observed' },
-              warningSigns: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Specific fraud warnings' },
-              actionSteps: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Recommended safety actions' },
+                { text: prompt },
+              ],
             },
-            required: ['riskLevel', 'score', 'scamType', 'extractedText', 'summary', 'visualClues', 'warningSigns', 'actionSteps'],
-          },
-        },
-      });
-
-      if (response.text) {
-        const parsed = JSON.parse(response.text.trim());
-        const { extractDetailedAnalysisForMessage } = await import('./src/utils/detailedAnalyzer.ts');
-        const detailed = extractDetailedAnalysisForMessage(
-          parsed.extractedText || notes || '',
-          parsed.riskLevel,
-          parsed.score,
-          parsed.warningSigns || [],
-          parsed.visualClues || []
-        );
-
-        recordCustomerCheck({
-          ...userMeta,
-          toolType: 'photo',
-          toolNameNe: 'फोटो / स्क्रिनसट जाँच',
-          toolNameEn: 'Photo & Screenshot Check',
-          inputSummary: notes ? `स्क्रिनसट नोट: ${notes.slice(0, 90)}` : 'अपलोड गरिएको विज्ञापन वा च्याट स्क्रिनसट',
-          fullInput: { notes, mimeType, lang },
-          riskLevel: parsed.riskLevel || 'CAUTION',
-          score: parsed.score || 65,
-          scamType: parsed.scamType || 'स्क्रिनसट ठगी संकेत',
-          solutionSummary: parsed.summary || '',
-          warningSigns: parsed.warningSigns || [],
-          actionSteps: parsed.actionSteps || [],
-          source: 'gemini-3.8-flash-vision',
-        });
-
-        return res.json({
-          success: true,
-          source: 'gemini-3.8-flash-vision',
-          data: {
-            ...parsed,
-            disclaimer: isNepali
-              ? 'यो नतिजा स्क्रिनसटको दृश्य तथा लेखाइ विश्लेषणमा आधारित मार्गदर्शन हो। वित्तीय निर्णय गर्नुअघि आधिकारिक निकायबाट पुष्टि गर्नुहोस्।'
-              : 'This assessment is automated guidance based on image artifacts. Verify with official authorities before any financial transaction.',
-            detailedAnalysis: detailed,
+          ],
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                riskLevel: { type: Type.STRING, description: 'HIGH_RISK, CAUTION, or LOW_RISK' },
+                score: { type: Type.NUMBER, description: 'Risk score 0-100' },
+                scamType: { type: Type.STRING, description: 'Scam type classification' },
+                extractedText: { type: Type.STRING, description: 'Text extracted from the screenshot' },
+                summary: { type: Type.STRING, description: 'Verdict summary' },
+                visualClues: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Visual indicators observed' },
+                warningSigns: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Specific fraud warnings' },
+                actionSteps: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Recommended safety actions' },
+              },
+              required: ['riskLevel', 'score', 'scamType', 'extractedText', 'summary', 'visualClues', 'warningSigns', 'actionSteps'],
+            },
           },
         });
+
+        if (response.text) {
+          const rawText = response.text.trim();
+          const jsonText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
+          const parsed = JSON.parse(jsonText);
+          const { extractDetailedAnalysisForMessage } = await import('./src/utils/detailedAnalyzer.ts');
+          const detailed = extractDetailedAnalysisForMessage(
+            parsed.extractedText || notes || '',
+            parsed.riskLevel,
+            parsed.score,
+            parsed.warningSigns || [],
+            parsed.visualClues || []
+          );
+
+          recordCustomerCheck({
+            ...userMeta,
+            toolType: 'photo',
+            toolNameNe: 'फोटो / स्क्रिनसट जाँच',
+            toolNameEn: 'Photo & Screenshot Check',
+            inputSummary: notes ? `स्क्रिनसट नोट: ${notes.slice(0, 90)}` : 'अपलोड गरिएको विज्ञापन वा च्याट स्क्रिनसट',
+            fullInput: { notes, mimeType: safeMime, lang },
+            riskLevel: parsed.riskLevel || 'CAUTION',
+            score: parsed.score || 65,
+            scamType: parsed.scamType || 'स्क्रिनसट ठगी संकेत',
+            solutionSummary: parsed.summary || '',
+            warningSigns: parsed.warningSigns || [],
+            actionSteps: parsed.actionSteps || [],
+            source: 'gemini-3.8-flash-vision',
+          });
+
+          return res.json({
+            success: true,
+            source: 'gemini-3.8-flash-vision',
+            data: {
+              ...parsed,
+              disclaimer: isNepali
+                ? 'यो नतिजा स्क्रिनसटको दृश्य तथा लेखाइ विश्लेषणमा आधारित मार्गदर्शन हो। वित्तीय निर्णय गर्नुअघि आधिकारिक निकायबाट पुष्टि गर्नुहोस्।'
+                : 'This assessment is automated guidance based on image artifacts. Verify with official authorities before any financial transaction.',
+              detailedAnalysis: detailed,
+            },
+          });
+        }
+      } catch (geminiErr) {
+        console.warn('Gemini vision API error, falling back to rule engine:', geminiErr);
       }
     }
 
@@ -590,7 +617,7 @@ Return structured JSON.`;
       toolNameNe: 'फोटो / स्क्रिनसट जाँच',
       toolNameEn: 'Photo & Screenshot Check',
       inputSummary: notes ? `स्क्रिनसट नोट: ${notes.slice(0, 90)}` : 'अपलोड गरिएको विज्ञापन वा च्याट स्क्रिनसट',
-      fullInput: { notes, mimeType, lang },
+      fullInput: { notes, mimeType: detectedMime, lang },
       riskLevel: fallback.riskLevel as any,
       score: fallback.score,
       scamType: fallback.scamType,
@@ -610,6 +637,164 @@ Return structured JSON.`;
     return res.json({
       success: true,
       source: 'fallback-image-analyzer',
+      data: fallback,
+    });
+  }
+});
+
+// Voice & Audio Scam Analysis Endpoint (Continuous audio, audio file upload, voice note inspection)
+app.post('/api/analyze-audio', async (req, res) => {
+  try {
+    const { audioBase64, mimeType = 'audio/webm', notes = '', transcript = '', lang = 'ne', durationSeconds = 0 } = req.body;
+    const userMeta = extractCheckUserInfo(req);
+    const isNepali = lang === 'ne';
+
+    let cleanAudio = '';
+    if (audioBase64 && typeof audioBase64 === 'string') {
+      const commaIndex = audioBase64.indexOf(',');
+      cleanAudio = (commaIndex !== -1 ? audioBase64.slice(commaIndex + 1) : audioBase64).replace(/\s+/g, '');
+    }
+
+    // If Gemini AI is active and audio was provided, run multimodal speech recognition + scam audit
+    if (ai && cleanAudio && cleanAudio.length > 100) {
+      try {
+        const safeAudioMime = mimeType.includes('mp3')
+          ? 'audio/mp3'
+          : mimeType.includes('wav')
+          ? 'audio/wav'
+          : mimeType.includes('ogg')
+          ? 'audio/ogg'
+          : mimeType.includes('m4a') || mimeType.includes('aac')
+          ? 'audio/aac'
+          : 'audio/webm';
+
+        const prompt = `You are a cybersecurity expert analyzing an audio recording or phone call in Nepal (e.g. fake police officer demanding payment, AI voice cloning impersonating a family member, fake bank/eSewa OTP scam, fake lottery call).
+Audio Language: ${isNepali ? 'Nepali (नेपाली)' : 'English'}.
+User Context / Transcript: "${transcript || notes || 'None'}".
+
+Carefully analyze:
+1. Transcript: Transcribe accurately what was spoken.
+2. Scam Type: Identify if this is a fake Nepal Police / Cyber Bureau arrest threat, eSewa / Khalti OTP theft, artificial urgency, deepfake AI voice clone, lottery, or extortion.
+3. Voice analysis: Robotic cadence, emotional manipulation, caller intimidation tactics.
+4. Risk Level: "HIGH_RISK", "CAUTION", or "LOW_RISK" (0-100).
+5. Warning signs and step-by-step action guidance in ${isNepali ? 'Nepali' : 'English'}.
+Return structured JSON.`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: safeAudioMime,
+                    data: cleanAudio,
+                  },
+                },
+                { text: prompt },
+              ],
+            },
+          ],
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                riskLevel: { type: Type.STRING, description: 'HIGH_RISK, CAUTION, or LOW_RISK' },
+                score: { type: Type.NUMBER, description: 'Risk score 0-100' },
+                scamType: { type: Type.STRING, description: 'Scam type classification' },
+                extractedText: { type: Type.STRING, description: 'Transcribed audio speech' },
+                summary: { type: Type.STRING, description: 'Verdict summary' },
+                visualClues: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Vocal and auditory indicators' },
+                warningSigns: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Specific fraud warnings' },
+                actionSteps: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Recommended safety actions' },
+              },
+              required: ['riskLevel', 'score', 'scamType', 'extractedText', 'summary', 'visualClues', 'warningSigns', 'actionSteps'],
+            },
+          },
+        });
+
+        if (response.text) {
+          const rawText = response.text.trim();
+          const jsonText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
+          const parsed = JSON.parse(jsonText);
+          const { extractDetailedAnalysisForMessage } = await import('./src/utils/detailedAnalyzer.ts');
+          const detailed = extractDetailedAnalysisForMessage(
+            parsed.extractedText || transcript || notes || '',
+            parsed.riskLevel,
+            parsed.score,
+            parsed.warningSigns || [],
+            parsed.visualClues || []
+          );
+
+          recordCustomerCheck({
+            ...userMeta,
+            toolType: 'voice',
+            toolNameNe: 'आवाज / अडियो जाँच',
+            toolNameEn: 'Voice & Audio Check',
+            inputSummary: parsed.extractedText
+              ? `अडियो: ${parsed.extractedText.slice(0, 90)}`
+              : transcript
+              ? `आवाज: ${transcript.slice(0, 90)}`
+              : 'रेकर्ड गरिएको अडियो कुराकानी',
+            fullInput: { durationSeconds, transcript, lang },
+            riskLevel: parsed.riskLevel || 'CAUTION',
+            score: parsed.score || 70,
+            scamType: parsed.scamType || 'शंकास्पद फोन वा अडियो',
+            solutionSummary: parsed.summary || '',
+            warningSigns: parsed.warningSigns || [],
+            actionSteps: parsed.actionSteps || [],
+            source: 'gemini-3.8-flash-audio',
+          });
+
+          return res.json({
+            success: true,
+            source: 'gemini-3.8-flash-audio',
+            data: {
+              ...parsed,
+              disclaimer: isNepali
+                ? 'यो नतिजा अडियो बोली तथा स्वर विश्लेषणमा आधारित मार्गदर्शन हो।'
+                : 'Automated guidance based on acoustic and semantic voice analysis.',
+              detailedAnalysis: detailed,
+            },
+          });
+        }
+      } catch (audioAiErr) {
+        console.warn('Gemini audio API error, falling back to acoustic rules:', audioAiErr);
+      }
+    }
+
+    const fallback = generateAudioFallback(transcript || notes || '', lang);
+    recordCustomerCheck({
+      ...userMeta,
+      toolType: 'voice',
+      toolNameNe: 'आवाज / अडियो जाँच',
+      toolNameEn: 'Voice & Audio Check',
+      inputSummary: transcript
+        ? `आवाज: ${transcript.slice(0, 90)}`
+        : 'रेकर्ड गरिएको अडियो कुराकानी',
+      fullInput: { durationSeconds, transcript, lang },
+      riskLevel: fallback.riskLevel as any,
+      score: fallback.score,
+      scamType: fallback.scamType,
+      solutionSummary: fallback.summary,
+      warningSigns: fallback.warningSigns,
+      actionSteps: fallback.actionSteps,
+      source: 'fallback-audio-analyzer',
+    });
+
+    return res.json({
+      success: true,
+      source: 'fallback-audio-analyzer',
+      data: fallback,
+    });
+  } catch (error: any) {
+    console.error('Error analyzing audio:', error);
+    const fallback = generateAudioFallback(req.body.transcript || req.body.notes || '', req.body.lang || 'ne');
+    return res.json({
+      success: true,
+      source: 'fallback-audio-analyzer',
       data: fallback,
     });
   }
@@ -1246,6 +1431,66 @@ function generateImageFallback(notes: string, lang: 'ne' | 'en') {
     disclaimer: isNe
       ? 'यो नतिजा स्वचालित विश्लेषणमा आधारित मार्गदर्शन हो। १००% ग्यारेन्टी हुँदैन।'
       : 'Automated guidance based on image artifacts. Not a legally binding verdict.',
+  };
+}
+
+function generateAudioFallback(transcript: string, lang: 'ne' | 'en') {
+  const isNe = lang === 'ne';
+  const t = (transcript || '').toLowerCase();
+  const isExtortion = /प्रहरी|मुद्दा|पक्राउ|पार्सल|लागूऔषध|court|police|arrest|cyber bureau|vocal|clone/.test(t);
+  const isWallet = /esewa|khalti|otp|बैंक|पिन|पासवर्ड|ओटिपी|hold|freeze/.test(t);
+  const isLottery = /चिठ्ठा|पुरस्कार|लक्की|lottery|prize|win|gift/.test(t);
+
+  const riskLevel = isExtortion || isWallet || isLottery ? 'HIGH_RISK' : 'CAUTION';
+  const score = isExtortion ? 88 : isWallet ? 85 : isLottery ? 80 : 60;
+
+  const scamType = isExtortion
+    ? (isNe ? 'नक्कली प्रहरी तथा भन्सार अधिकृतको धम्की कल' : 'Fake Police & Customs Extortion Call')
+    : isWallet
+    ? (isNe ? 'eSewa / बैंक OTP तथा खाता ह्याक कल' : 'Banking & OTP Compromise Call')
+    : isLottery
+    ? (isNe ? 'चिठ्ठा तथा पुरस्कार अग्रिम शुल्क कल' : 'Lottery Prize Advance Fee Call')
+    : (isNe ? 'शंकास्पद फोन तथा भ्वाइस नोट कल' : 'Suspicious Voice Note / Phone Call');
+
+  const summary = isExtortion
+    ? (isNe
+        ? 'कल वा अडियोमा प्रहरी वा सरकारी अधिकृतको नाम लिएर हतार देखाउँदै पैसा माग्न खोजिएको संकेत छ। नेपाल प्रहरीले फोनमा पैसा वा जरिवाना कहिल्यै माग्दैन।'
+        : 'Audio displays urgency and intimidation claiming authority. Nepal Police never demands money over phone.')
+    : isWallet
+    ? (isNe
+        ? 'बैंक वा डिजिटल वालेटको कर्मचारी भन्दै OTP वा खाता विवरण माग्ने शैली देखिन्छ। आफ्नो पिन वा OTP कसैलाई नदिनुहोस्।'
+        : 'Indicators of financial impersonation demanding verification codes. Never disclose OTP or passwords.')
+    : (isNe
+        ? 'अडियो सन्देशमा अनलाइन ठगीसँग मिल्दाजुल्दा प्रलोभन वा हतारका तत्वहरू भेटिएका छन्। कुनै पनि रकम नपठाउनुहोस्।'
+        : 'Audio indicators suggest caution. Do not transfer funds or disclose private credentials.');
+
+  const warningSigns = [
+    isNe ? 'तत्काल रकम नपठाए पक्राउ वा खाता बन्द हुने नक्कली धम्की' : 'Threat of arrest or account closure if money is not sent immediately',
+    isNe ? 'अपरिचित वा विदेशी नम्बरबाट आधिकारिक अधिकारी बनेर गरिएको कल' : 'Impersonation of official authorities from unauthorized numbers',
+    isNe ? 'गोप्य पिन, पासवर्ड वा OTP मागेको' : 'Requests for confidential PIN, password, or OTP',
+  ];
+
+  const actionSteps = [
+    isNe ? 'कल तुरुन्त काट्नुहोस् र कुनै पनि खातामा पैसा नपठाउनुहोस्।' : 'Hang up immediately and do not transfer any money.',
+    isNe ? 'नेपाल प्रहरी साइबर ब्युरो (०१-४२१२९२९) मा तुरुन्त जानकारी गराउनुहोस्।' : 'Report the number to Nepal Police Cyber Bureau (01-4212929).',
+    isNe ? 'आफ्नो बैंक वा eSewa/Khalti को पासवर्ड र पिन सुरक्षित राख्नुहोस्।' : 'Keep your digital wallet and banking credentials confidential.',
+  ];
+
+  return {
+    riskLevel,
+    score,
+    scamType,
+    extractedText: transcript || (isNe ? 'अडियो कुराकानी विश्लेषण गरिएको छ' : 'Voice audio transcript analyzed'),
+    summary,
+    visualClues: [
+      isNe ? 'कृत्रिम वा हतारयुक्त आवाज शैली' : 'High-pressure vocal tone',
+      isNe ? 'धम्की र मानसिक दबाब' : 'Intimidation and psychological urgency',
+    ],
+    warningSigns,
+    actionSteps,
+    disclaimer: isNe
+      ? 'यो नतिजा अडियो विश्लेषणमा आधारित प्रारम्भिक सुरक्षा मार्गदर्शन हो।'
+      : 'Automated cybersecurity guidance based on voice audio analysis.',
   };
 }
 

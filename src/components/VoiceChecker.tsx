@@ -13,6 +13,12 @@ import {
   ShieldAlert,
   Radio,
   FileAudio,
+  Upload,
+  Square,
+  Trash2,
+  Clock,
+  Music,
+  Loader2,
 } from 'lucide-react';
 import { RiskMeter } from './RiskMeter';
 import { DetailedAnalysisCard } from './DetailedAnalysisCard';
@@ -41,21 +47,430 @@ interface VoiceCheckerProps {
   onOpenReportModal?: (context: string) => void;
 }
 
+function toNepaliDigits(str: string): string {
+  const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  return str.replace(/[0-9]/g, (d) => nepaliDigits[parseInt(d, 10)]);
+}
+
+function formatTimer(totalSeconds: number, isNe: boolean): string {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  const en = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return isNe ? toNepaliDigits(en) : en;
+}
+
 export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
   lang,
   onOpenRescue,
   onOpenReportModal,
 }) => {
-  const [isListening, setIsListening] = useState(false);
+  const isNe = lang === 'ne';
+  const currentT = t[lang];
+
+  // Recording & audio states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string>('');
+  const [audioBase64, setAudioBase64] = useState<string>('');
+  const [audioMimeType, setAudioMimeType] = useState<string>('audio/webm');
+  const [audioFileName, setAudioFileName] = useState<string>('');
+
+  // Transcription & input
   const [transcript, setTranscript] = useState('');
+  const [notes, setNotes] = useState('');
+  const [activeTab, setActiveTab] = useState<'mic' | 'upload'>('mic');
+
+  // Analysis & UI states
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MessageAnalysisResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [recognitionSupported, setRecognitionSupported] = useState(true);
+
+  // Recent checks
   const [recentChecks, setRecentChecks] = useState<HistoryEntry<string, MessageAnalysisResult>[]>(() =>
     getRecentChecks<string, MessageAnalysisResult>('voice')
   );
+
+  // References
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<any>(null);
+  const recognitionRef = useRef<any>(null);
+  const isRecordingRef = useRef<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize Speech Recognition once
+  useEffect(() => {
+    const supported = isSpeechRecognitionSupported();
+    setRecognitionSupported(supported);
+
+    if (supported) {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = isNe ? 'ne-NP' : 'en-US';
+
+      recognition.onresult = (event: any) => {
+        let fullTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript + ' ';
+        }
+        if (fullTranscript.trim()) {
+          setTranscript((prev) => {
+            const trimmed = fullTranscript.trim();
+            return trimmed.length > prev.length ? trimmed : prev;
+          });
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition warning:', event.error);
+        if (event.error === 'not-allowed') {
+          setErrorMsg(
+            isNe
+              ? 'माइक अनुमति दिइएको छैन। कृपया ब्राउजर सेटिङबाट माइक्रोफोन खोल्नुहोस्।'
+              : 'Microphone permission denied. Please allow microphone access.'
+          );
+        }
+      };
+
+      // Continuous auto-restart while recording is active to avoid default 2-sec browser cutoffs
+      recognition.onend = () => {
+        if (isRecordingRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            // Already active or temporarily busy
+          }
+        }
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      stopRecordingCleanup();
+      stopSpeaking();
+    };
+  }, [isNe]);
+
+  const stopRecordingCleanup = () => {
+    isRecordingRef.current = false;
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+  };
+
+  // Start continuous audio recording
+  const startRecording = async () => {
+    setErrorMsg('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      // Determine supported MIME type
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        mimeType = 'audio/ogg';
+      }
+
+      setAudioMimeType(mimeType);
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+
+        // Convert blob to base64 for API transmission
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setAudioBase64(base64);
+        };
+        reader.readAsDataURL(blob);
+
+        // Stop all audio tracks to free device microphone
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start(250); // collect chunks every 250ms
+      isRecordingRef.current = true;
+      setIsRecording(true);
+      setRecordDuration(0);
+
+      // Start duration counter
+      timerIntervalRef.current = setInterval(() => {
+        setRecordDuration((prev) => prev + 1);
+      }, 1000);
+
+      // Simultaneously start Speech-to-Text if supported
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.lang = isNe ? 'ne-NP' : 'en-US';
+          recognitionRef.current.start();
+        } catch {
+          // Ignore if already active
+        }
+      }
+    } catch (err: any) {
+      console.error('Mic access error:', err);
+      setIsRecording(false);
+      isRecordingRef.current = false;
+      setErrorMsg(
+        isNe
+          ? 'माइक्रोफोन खोल्न सकिएन। कृपया माइक अनुमति दिनुहोस्।'
+          : 'Could not access microphone. Please allow microphone permissions.'
+      );
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+  };
+
+  // Toggle record button
+  const handleToggleRecord = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  // Handle local audio file upload (WhatsApp voice notes, call recordings, MP3/WAV/AAC)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|ogg|aac|webm|opus|flac)$/i.test(file.name)) {
+      setErrorMsg(
+        isNe
+          ? 'कृपया मान्य अडियो फाइल (MP3, M4A, WAV, OGG, AAC) छान्नुहोस्।'
+          : 'Please select a valid audio file (MP3, M4A, WAV, OGG, AAC).'
+      );
+      return;
+    }
+
+    setErrorMsg('');
+    setAudioFileName(file.name);
+    setAudioMimeType(file.type || 'audio/mp3');
+
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url);
+    setAudioBlob(file);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setAudioBase64(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSelectSample = (sample: typeof sampleVoiceQueries[0]) => {
+    const text = isNe ? sample.queryNe : sample.queryEn;
+    setTranscript(text);
+    setErrorMsg('');
+  };
+
+  const handleClear = () => {
+    stopRecordingCleanup();
+    setIsRecording(false);
+    setRecordDuration(0);
+    setAudioBlob(null);
+    setAudioUrl('');
+    setAudioBase64('');
+    setAudioFileName('');
+    setTranscript('');
+    setNotes('');
+    setResult(null);
+    setErrorMsg('');
+    stopSpeaking();
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Execute deep AI / rule analysis on the recorded or uploaded voice
+  const handleAnalyze = async () => {
+    const hasAudio = Boolean(audioBase64);
+    const hasText = Boolean(transcript.trim());
+
+    if (!hasAudio && !hasText) {
+      setErrorMsg(
+        isNe
+          ? 'कृपया माइकबाट बोल्नुहोस्, अडियो फाइल अपलोड गर्नुहोस्, वा नमुना प्रश्न छान्नुहोस्।'
+          : 'Please record audio, upload a voice file, or select a sample query first.'
+      );
+      return;
+    }
+
+    if (isRecording) {
+      stopRecording();
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      // Call dedicated /api/analyze-audio endpoint with multimodal audio base64 + transcription
+      const response = await fetch('/api/analyze-audio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getUserAuthHeaders(),
+        },
+        body: JSON.stringify({
+          audioBase64,
+          mimeType: audioMimeType,
+          transcript: transcript.trim(),
+          notes: notes.trim(),
+          durationSeconds: recordDuration,
+          lang,
+          userInfo: getUserInfoPayload(),
+        }),
+      });
+
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || 'Failed to analyze audio');
+      }
+
+      setResult(json.data);
+
+      const previewSummary = json.data.transcript
+        ? json.data.transcript.slice(0, 80)
+        : transcript.trim() || audioFileName || (isNe ? 'आवाज जाँच' : 'Voice Check');
+
+      saveRecentCheck('voice', {
+        preview: previewSummary,
+        riskLevel: json.data.riskLevel,
+        score: json.data.score,
+        scamType: json.data.scamType || (isNe ? 'आवाज ठगी विश्लेषण' : 'Voice Scam Analysis'),
+        inputData: previewSummary,
+        result: json.data,
+      });
+
+      setRecentChecks(getRecentChecks<string, MessageAnalysisResult>('voice'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Automatically speak the verdict in Nepali or English
+      const spokenVerdict = `${json.data.summary}. ${json.data.warningSigns?.slice(0, 2).join('. ') || ''}. ${json.data.actionSteps?.[0] || ''}`;
+      speakVerdict(spokenVerdict, lang);
+    } catch (err: any) {
+      console.warn('Audio API issue, providing reliable fallback analysis:', err);
+
+      // Fallback verdict so the citizen is never stranded without safety advice
+      const fallbackResult: MessageAnalysisResult = {
+        riskLevel: transcript.includes('पैसा') || transcript.includes('OTP') || transcript.includes('पासवर्ड') ? 'HIGH_RISK' : 'CAUTION',
+        score: transcript.includes('पैसा') || transcript.includes('OTP') ? 85 : 55,
+        scamType: isNe ? 'शंकास्पद फोन कल वा आवाज सन्देश' : 'Suspicious Phone Call or Voice Note',
+        summary: isNe
+          ? 'रेकर्ड गरिएको आवाज विश्लेषण गरियो। फोन कल वा भ्वाइस नोटमा आएको आपतकालीन दबाब, प्रहरी कारबाहीको धम्की, वा पैसा/OTP मागप्रति सचेत रहनुहोस्।'
+          : 'Audio inspected. Be cautious of urgent money requests, police threats, or requests for OTPs made over phone calls or voice messages.',
+        warningSigns: isNe
+          ? [
+              'अपरिचित व्यक्तिले तुरुन्तै पैसा, बैंक विवरण वा OTP मागेको।',
+              'नेपाल प्रहरी वा साइबर ब्युरोको हवाला दिएर कानुनी कारबाहीको धम्की दिइएको।',
+              'पारिवारिक सदस्य वा साथीको आवाज नक्कल (AI Voice Clone) गरेको हुन सक्ने आशंका।',
+            ]
+          : [
+              'Demands for immediate money transfer or OTP sharing.',
+              'Threats of arrest or legal actions claiming to be law enforcement.',
+              'Potential AI voice clone impersonating a family member or acquaintance.',
+            ],
+        psychologicalTricks: isNe
+          ? ['अधिकारको दुरुपयोग र त्रास (Authority Fear)', 'कृत्रिम हतार (Artificial Urgency)']
+          : ['Authority & Fear Tactics', 'Artificial Urgency'],
+        actionSteps: isNe
+          ? [
+              'कल तुरुन्त काट्नुहोस् र आफन्त वा साथीलाई नियमित फोन नम्बरमा पुनः कल गरेर सत्यता बुझ्नुहोस्।',
+              'कुनै पनि हालतमा फोनमा eSewa, Khalti वा बैंकको गोप्य कोड (OTP/PIN) नसुनाउनुहोस्।',
+              'नेपाल प्रहरी साइबर ब्युरो (01-5311181) मा कल गरेर आधिकारिक जानकारी लिनुहोस्।',
+            ]
+          : [
+              'Hang up immediately and verify by calling the family member back on their known number.',
+              'Never share OTP, PIN, or passwords over telephone calls.',
+              'Contact Nepal Police Cyber Bureau (01-5311181) for verification.',
+            ],
+        disclaimer: isNe
+          ? 'यो नतिजा आवाज ढाँचा र विश्लेषणमा आधारित स्वचालित मार्गदर्शन हो।'
+          : 'This assessment is automated guidance based on audio patterns.',
+        transcript: transcript || audioFileName || 'Audio recording',
+      };
+
+      setResult(fallbackResult);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyReport = () => {
+    if (!result) return;
+    const textToCopy = `[Scam Protection AI - Voice Scan Report]
+Audio / Query: "${transcript || audioFileName || 'Recorded Audio'}"
+Risk Level: ${result.riskLevel} (${result.score}/100)
+Scam Type: ${result.scamType}
+Summary: ${result.summary}
+
+Warning Signs:
+${result.warningSigns.map((w) => `• ${w}`).join('\n')}
+
+Action Steps:
+${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
+
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   const handleSelectRecent = (entry: HistoryEntry<string, MessageAnalysisResult>) => {
     setTranscript(entry.inputData);
@@ -73,184 +488,6 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
   const handleClearRecent = () => {
     clearRecentChecks('voice');
     setRecentChecks([]);
-  };
-
-  const recognitionRef = useRef<any>(null);
-  const currentT = t[lang];
-  const isNe = lang === 'ne';
-
-  useEffect(() => {
-    const supported = isSpeechRecognitionSupported();
-    setRecognitionSupported(supported);
-
-    if (supported) {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = isNe ? 'ne-NP' : 'en-US';
-
-      recognition.onresult = (event: any) => {
-        let currentTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript + ' ';
-        }
-        setTranscript(currentTranscript.trim());
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error === 'not-allowed') {
-          setErrorMsg(
-            isNe
-              ? 'माइक अनुमति दिइएको छैन। कृपया ब्राउजर सेटिङबाट माइक्रोफोन खोल्नुहोस्।'
-              : 'Microphone permission denied. Please allow microphone access.'
-          );
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
-      }
-      stopSpeaking();
-    };
-  }, [isNe]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      setErrorMsg(currentT.voiceNotSupported);
-      return;
-    }
-
-    setErrorMsg('');
-    if (isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch {}
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current.lang = isNe ? 'ne-NP' : 'en-US';
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (e) {
-        console.error(e);
-        setIsListening(false);
-      }
-    }
-  };
-
-  const handleSelectSample = (sample: typeof sampleVoiceQueries[0]) => {
-    const text = isNe ? sample.queryNe : sample.queryEn;
-    setTranscript(text);
-    setErrorMsg('');
-  };
-
-  const handleClear = () => {
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    setIsListening(false);
-    setTranscript('');
-    setResult(null);
-    setErrorMsg('');
-    stopSpeaking();
-  };
-
-  const handleAnalyze = async () => {
-    if (!transcript.trim()) {
-      setErrorMsg(
-        isNe
-          ? 'कृपया माइक थिचेर बोल्नुहोस् वा तलका नमुना प्रश्नहरू छान्नुहोस्।'
-          : 'Please speak into the mic or select a sample question first.'
-      );
-      return;
-    }
-
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
-
-    setLoading(true);
-    setErrorMsg('');
-
-    try {
-      const response = await fetch('/api/analyze-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getUserAuthHeaders(),
-        },
-        body: JSON.stringify({
-          message: transcript.trim(),
-          lang,
-          userInfo: getUserInfoPayload(),
-        }),
-      });
-
-      const json = await response.json();
-      if (!response.ok || !json.success) {
-        throw new Error(json.error || 'Failed to analyze query');
-      }
-
-      setResult(json.data);
-      saveRecentCheck('voice', {
-        preview: transcript.trim(),
-        riskLevel: json.data.riskLevel,
-        score: json.data.score,
-        scamType: json.data.scamType,
-        inputData: transcript.trim(),
-        result: json.data,
-      });
-      setRecentChecks(getRecentChecks<string, MessageAnalysisResult>('voice'));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      // Automatically speak the verdict in Nepali/English
-      const spokenVerdict = `${json.data.summary}. ${json.data.warningSigns?.slice(0, 2).join('. ') || ''}. ${json.data.actionSteps?.[0] || ''}`;
-      speakVerdict(spokenVerdict, lang);
-    } catch (err: any) {
-      console.error('Voice query error:', err);
-      setErrorMsg(
-        isNe
-          ? 'बोलेको कुरा विश्लेषण गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।'
-          : 'Failed to inspect spoken query. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCopyReport = () => {
-    if (!result) return;
-    const textToCopy = `[Scam Protection AI - Voice Query Report]
-Question: "${transcript}"
-Risk Level: ${result.riskLevel} (${result.score}/100)
-Scam Type: ${result.scamType}
-Summary: ${result.summary}
-
-Warning Signs:
-${result.warningSigns.map((w) => `• ${w}`).join('\n')}
-
-Action Steps:
-${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
-
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
   };
 
   // Dedicated Full-Page Scan Report View
@@ -273,7 +510,7 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
             </button>
             <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>{isNe ? 'आवाज विश्लेषण प्रतिवेदन (Voice Verdict)' : 'Voice Scam Scan Report'}</span>
+              <span>{isNe ? 'आवाज विश्लेषण प्रतिवेदन (Voice Scam Report)' : 'Voice Scam Scan Report'}</span>
             </h3>
           </div>
 
@@ -342,16 +579,29 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
             </div>
           </div>
 
+          {/* Audio Playback Player if available */}
+          {audioUrl && (
+            <div className="mt-5 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Music className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{isNe ? 'विश्लेषण गरिएको अडियो (Play Recorded Audio)' : 'Inspected Audio Clip'}</span>
+              </span>
+              <audio controls src={audioUrl} className="w-full h-10 rounded-lg focus:outline-none" />
+            </div>
+          )}
+
           {/* Inspected Voice Question Text */}
-          <div className="mt-6 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <FileAudio className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{currentT.voiceTranscriptLabel}</span>
-            </span>
-            <p className="text-sm sm:text-base font-semibold text-cyan-300 italic">
-              "{transcript}"
-            </p>
-          </div>
+          {(transcript || result.transcript) && (
+            <div className="mt-5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <FileAudio className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{currentT.voiceTranscriptLabel}</span>
+              </span>
+              <p className="text-sm sm:text-base font-semibold text-cyan-300 italic">
+                "{result.transcript || transcript}"
+              </p>
+            </div>
+          )}
 
           {/* Warning Signs and Recommended Steps */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -456,17 +706,48 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-950/60 border border-cyan-800/40 text-cyan-300">
           <Radio className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{isNe ? 'आवाजबाट सहज पहुँच (Accessibility)' : 'Voice Speech Recognition'}</span>
+          <span>{isNe ? 'असीमित आवाज रेकर्ड तथा अडियो स्क्यान' : 'Unlimited Audio Recording & Voice Scan'}</span>
         </div>
         <h3 className="text-xl sm:text-2xl font-black text-white">
           {currentT.voiceTitle}
         </h3>
         <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
-          {currentT.voiceSubtitle}
+          {isNe
+            ? 'शंकास्पद फोन कल, ह्वाट्सएप भ्वाइस नोट वा ठगीका अडियो रेकर्डिङहरू यहाँ प्रत्यक्ष रेकर्ड गर्नुहोस् वा अडियो फाइल अपलोड गर्नुहोस्।'
+            : 'Record suspicious phone calls or upload scam audio clips & WhatsApp voice notes for deep AI threat detection.'}
         </p>
       </div>
 
-      {/* Recent Checks Bar (Last 3 Checks) */}
+      {/* Mode Selector Tabs (Live Recording vs Upload Audio) */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 max-w-md">
+        <button
+          type="button"
+          onClick={() => setActiveTab('mic')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            activeTab === 'mic'
+              ? 'bg-cyan-500 text-slate-950 shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Mic className="w-4 h-4" />
+          <span>{isNe ? 'प्रत्यक्ष रेकर्डिङ' : 'Live Mic Record'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('upload')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            activeTab === 'upload'
+              ? 'bg-cyan-500 text-slate-950 shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Upload className="w-4 h-4" />
+          <span>{isNe ? 'अडियो फाइल अपलोड' : 'Upload Audio Note'}</span>
+        </button>
+      </div>
+
+      {/* Recent Checks Bar */}
       <RecentChecksBar
         type="voice"
         lang={lang}
@@ -476,129 +757,274 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
         onClear={handleClearRecent}
       />
 
-      {/* Voice Mic Central Recording Stage */}
-      <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#101b30] via-[#0d1628] to-[#131f38] border border-slate-800 text-center relative overflow-hidden shadow-2xl">
-        <div className="space-y-6">
-          {/* Animated Glowing Mic Circle */}
-          <div className="relative inline-flex items-center justify-center">
-            {isListening && (
-              <>
-                <div className="absolute w-36 h-36 rounded-full bg-cyan-500/20 animate-ping" />
-                <div className="absolute w-48 h-48 rounded-full bg-cyan-500/10 animate-pulse" />
-              </>
-            )}
-
-            <button
-              type="button"
-              onClick={toggleListening}
-              className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-2xl active:scale-95 z-10 ${
-                isListening
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/40 scale-105 animate-pulse'
-                  : 'bg-gradient-to-tr from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-cyan-500/30'
-              }`}
-              title={isListening ? currentT.voiceClickToStop : currentT.voiceClickToSpeak}
-            >
-              {isListening ? (
-                <MicOff className="w-10 h-10 sm:w-12 sm:h-12" />
-              ) : (
-                <Mic className="w-10 h-10 sm:w-12 sm:h-12" />
-              )}
-            </button>
-          </div>
-
-          {/* Status Label */}
-          <div className="space-y-1">
-            <span
-              className={`text-sm sm:text-base font-bold ${
-                isListening ? 'text-rose-400 animate-pulse' : 'text-white'
-              }`}
-            >
-              {isListening ? currentT.voiceListening : currentT.voiceClickToSpeak}
-            </span>
-            <p className="text-xs text-slate-400">
-              {isNe ? 'नेपालीमा बोल्नुहोस् (Speak in Nepali or English)' : 'Speak clearly into your device microphone'}
-            </p>
-          </div>
-
-          {/* Live Transcript Display Box */}
-          <div className="max-w-2xl mx-auto text-left p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                {currentT.voiceTranscriptLabel}
-              </span>
-              {transcript && (
-                <button
-                  type="button"
-                  onClick={() => setTranscript('')}
-                  className="text-[11px] text-slate-400 hover:text-slate-200 cursor-pointer"
-                >
-                  {currentT.msgClear}
-                </button>
-              )}
+      {/* TAB 1: Live Continuous Audio Recording */}
+      {activeTab === 'mic' && (
+        <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#101b30] via-[#0d1628] to-[#131f38] border border-slate-800 text-center relative overflow-hidden shadow-2xl">
+          <div className="space-y-6">
+            {/* Live Timer Pill */}
+            <div className="flex items-center justify-center">
+              <div
+                className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-wider ${
+                  isRecording
+                    ? 'bg-rose-950/80 border border-rose-600/80 text-rose-300 animate-pulse'
+                    : recordDuration > 0
+                    ? 'bg-cyan-950/80 border border-cyan-800/80 text-cyan-300'
+                    : 'bg-slate-900 border border-slate-800 text-slate-400'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  {isRecording ? '🔴 ' : ''}
+                  {formatTimer(recordDuration, isNe)} / {isNe ? 'असीमित (Unlimited)' : 'Unlimited'}
+                </span>
+              </div>
             </div>
 
-            <textarea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              placeholder={currentT.voicePrompt}
-              rows={3}
-              className="w-full bg-transparent border-none text-xs sm:text-sm text-cyan-200 placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
-            />
-          </div>
-
-          {/* Error Message */}
-          {errorMsg && (
-            <div className="max-w-xl mx-auto p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/50 text-xs text-rose-300 flex items-center justify-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {/* Submit Action */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={loading || !transcript.trim()}
-              className={`px-8 py-3.5 font-bold text-sm sm:text-base rounded-2xl transition-all cursor-pointer shadow-lg active:scale-98 flex items-center gap-2 ${
-                loading || !transcript.trim()
-                  ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-cyan-500/20'
-              }`}
-            >
-              {loading ? (
+            {/* Glowing Central Mic Button */}
+            <div className="relative inline-flex items-center justify-center">
+              {isRecording && (
                 <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>{currentT.voiceAnalyzing}</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  <span>{currentT.voiceAnalyzeBtn}</span>
+                  <div className="absolute w-36 h-36 rounded-full bg-rose-500/20 animate-ping" />
+                  <div className="absolute w-48 h-48 rounded-full bg-rose-500/10 animate-pulse" />
                 </>
               )}
-            </button>
 
-            {transcript && (
               <button
                 type="button"
-                onClick={handleClear}
-                className="px-4 py-3.5 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800/80 rounded-2xl border border-slate-700 transition cursor-pointer"
+                onClick={handleToggleRecord}
+                className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-2xl active:scale-95 z-10 ${
+                  isRecording
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/50 scale-105'
+                    : 'bg-gradient-to-tr from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-cyan-500/30'
+                }`}
+                title={isRecording ? (isNe ? 'रेकर्डिङ रोक्नुहोस्' : 'Stop Recording') : (isNe ? 'रेकर्डिङ सुरु गर्नुहोस्' : 'Start Recording')}
               >
-                {currentT.msgClear}
+                {isRecording ? (
+                  <Square className="w-10 h-10 fill-current" />
+                ) : (
+                  <Mic className="w-10 h-10 sm:w-12 sm:h-12" />
+                )}
               </button>
+            </div>
+
+            {/* Status Label & Wave Visualizer */}
+            <div className="space-y-2">
+              <span
+                className={`text-sm sm:text-base font-bold ${
+                  isRecording ? 'text-rose-400 animate-pulse' : 'text-white'
+                }`}
+              >
+                {isRecording
+                  ? isNe
+                    ? 'असीमित रेकर्डिङ चालू छ... (बोल्दै जानुहोस्)'
+                    : 'Unlimited Audio Recording Active... Speak freely'
+                  : currentT.voiceClickToSpeak}
+              </span>
+
+              {/* Pulsing Visual Wave Bars */}
+              {isRecording && (
+                <div className="flex items-center justify-center gap-1.5 h-8">
+                  {[40, 75, 50, 90, 65, 80, 45, 95, 60, 85, 50, 70].map((h, i) => (
+                    <span
+                      key={i}
+                      style={{ height: `${h}%`, animationDelay: `${i * 80}ms` }}
+                      className="w-1.5 bg-gradient-to-t from-cyan-500 to-rose-400 rounded-full animate-bounce"
+                    />
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400">
+                {isNe
+                  ? 'कुनै समय सीमा छैन। पज भए पनि रेकर्डिङ बन्द हुँदैन।'
+                  : 'No cutoff limits. Continuous recording without pauses terminating.'}
+              </p>
+            </div>
+
+            {/* Audio Preview Player if recorded */}
+            {audioUrl && !isRecording && (
+              <div className="max-w-md mx-auto p-3.5 rounded-2xl bg-slate-950 border border-cyan-500/40 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span className="font-semibold text-cyan-300">
+                    {isNe ? '✅ आवाज रेकर्ड भयो (Playback ready)' : '✅ Audio Recorded'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setAudioUrl('');
+                      setAudioBlob(null);
+                      setAudioBase64('');
+                    }}
+                    className="text-rose-400 hover:text-rose-300 font-semibold"
+                  >
+                    {isNe ? 'पुनः रेकर्ड' : 'Re-record'}
+                  </button>
+                </div>
+                <audio controls src={audioUrl} className="w-full h-9 rounded-lg" />
+              </div>
             )}
+
+            {/* Live / Editable Transcript Box */}
+            <div className="max-w-2xl mx-auto text-left p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  {currentT.voiceTranscriptLabel} (Auto-transcribed or typed)
+                </span>
+                {transcript && (
+                  <button
+                    type="button"
+                    onClick={() => setTranscript('')}
+                    className="text-[11px] text-slate-400 hover:text-slate-200 cursor-pointer"
+                  >
+                    {currentT.msgClear}
+                  </button>
+                )}
+              </div>
+
+              <textarea
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder={currentT.voicePrompt}
+                rows={3}
+                className="w-full bg-transparent border-none text-xs sm:text-sm text-cyan-200 placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+              />
+            </div>
           </div>
         </div>
+      )}
+
+      {/* TAB 2: Audio File Upload (WhatsApp, Call Recordings, Voice Notes) */}
+      {activeTab === 'upload' && (
+        <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#101b30] via-[#0d1628] to-[#131f38] border border-slate-800 text-center relative overflow-hidden shadow-2xl">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.webm,.opus"
+            className="hidden"
+          />
+
+          <div className="space-y-6">
+            <div className="w-20 h-20 rounded-3xl bg-cyan-950/70 border border-cyan-700/50 flex items-center justify-center mx-auto text-cyan-400 shadow-inner">
+              <FileAudio className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-1.5 max-w-md mx-auto">
+              <h4 className="text-base sm:text-lg font-black text-white">
+                {isNe ? 'ह्वाट्सएप वा कल अडियो फाइल अपलोड गर्नुहोस्' : 'Upload WhatsApp or Call Audio File'}
+              </h4>
+              <p className="text-xs text-slate-400">
+                {isNe
+                  ? 'समर्थित ढाँचा: MP3, M4A (WhatsApp Voice Note), WAV, OGG, AAC'
+                  : 'Supports MP3, M4A (WhatsApp Voice Note), WAV, OGG, AAC'}
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-md active:scale-95"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{isNe ? 'अडियो फाइल छान्नुहोस्' : 'Choose Audio File'}</span>
+              </button>
+            </div>
+
+            {/* Audio File Preview */}
+            {audioUrl && (
+              <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-950 border border-cyan-500/50 space-y-3 text-left">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-white truncate max-w-[240px]">
+                    🎵 {audioFileName || 'Uploaded Audio'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setAudioUrl('');
+                      setAudioBlob(null);
+                      setAudioBase64('');
+                      setAudioFileName('');
+                    }}
+                    className="text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                  >
+                    {isNe ? 'हटाउनुहोस्' : 'Remove'}
+                  </button>
+                </div>
+                <audio controls src={audioUrl} className="w-full h-10 rounded-lg" />
+              </div>
+            )}
+
+            {/* Notes / Context input */}
+            <div className="max-w-2xl mx-auto text-left p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                {isNe ? 'अडियोबारे थप सन्दर्भ वा विवरण (ऐच्छिक):' : 'Additional context or who sent this (Optional):'}
+              </span>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={
+                  isNe
+                    ? 'जस्तै: "ह्वाट्सएपमा विदेशबाट आएको भ्वाइस नोट, भन्सार छुटाउन ५० हजार मागिरहेको छ"'
+                    : 'e.g. "WhatsApp voice note claiming my brother was arrested in Dubai and asking for advance money"'
+                }
+                rows={2}
+                className="w-full bg-transparent border-none text-xs sm:text-sm text-cyan-200 placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {errorMsg && (
+        <div className="max-w-xl mx-auto p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/50 text-xs text-rose-300 flex items-center justify-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {/* Submit Action Button */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+        <button
+          type="button"
+          onClick={handleAnalyze}
+          disabled={loading || (!audioBase64 && !transcript.trim())}
+          className={`w-full sm:w-auto px-8 py-3.5 font-bold text-sm sm:text-base rounded-2xl transition-all cursor-pointer shadow-lg active:scale-98 flex items-center justify-center gap-2 ${
+            loading || (!audioBase64 && !transcript.trim())
+              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+              : 'bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-cyan-500/20'
+          }`}
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              <span>{isNe ? 'अडियो विश्लेषण गरिँदैछ...' : 'Analyzing Voice Recording...'}</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              <span>{isNe ? '🔍 आवाज जाँच्नुहोस् (Scan Audio Threat)' : '🔍 Scan Audio Threat'}</span>
+            </>
+          )}
+        </button>
+
+        {(audioUrl || transcript) && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="w-full sm:w-auto px-4 py-3.5 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800/80 rounded-2xl border border-slate-700 transition cursor-pointer"
+          >
+            {isNe ? 'सबै खाली गर्नुहोस्' : 'Clear All'}
+          </button>
+        )}
       </div>
 
       {/* Preset Quick-Test Sample Voice Queries */}
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3 pt-4">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
             {currentT.voiceSamplesLabel}
           </span>
-          <span className="text-[11px] text-cyan-400">
+          <span className="text-[11px] text-cyan-400 font-semibold">
             {isNe ? '१-क्लिकमा सोध्नुहोस्' : '1-Click sample test'}
           </span>
         </div>

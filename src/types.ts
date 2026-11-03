@@ -40,6 +40,7 @@ export interface MessageAnalysisResult {
   actionSteps: string[];
   disclaimer: string;
   source?: string;
+  transcript?: string;
   detailedAnalysis?: DetailedAnalysisData;
 }
 

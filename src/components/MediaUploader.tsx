@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, CheckCircle2, Loader2, Image as ImageIcon, Link as LinkIcon, X } from 'lucide-react';
 import { uploadFileToServer } from '../utils/uploadHelper';
+import { isValidImageFile } from '../utils/imageHelper';
 
 interface MediaUploaderProps {
   label: string;
@@ -31,7 +32,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!isValidImageFile(file)) {
       setUploadError(isNe ? 'कृपया मान्य फोटो फाइल (JPG, PNG, WebP) छान्नुहोस्' : 'Please select a valid image file');
       return;
     }

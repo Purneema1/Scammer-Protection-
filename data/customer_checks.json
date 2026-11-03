@@ -1,0 +1,228 @@
+[
+  {
+    "id": "chk-1793699953201-506",
+    "timestamp": "2026-11-03T09:59:13.201Z",
+    "customerSession": "Citizen-KTM-5782",
+    "toolType": "voice",
+    "toolNameNe": "आवाज / अडियो जाँच",
+    "toolNameEn": "Voice & Audio Check",
+    "inputSummary": "आवाज: नेपाल प्रहरी साइबर ब्युरोबाट इन्स्पेक्टर बोलेको, तपाईंको नाममा पक्राउ पुर्जी छ, तुरुन्त ५०",
+    "fullInput": {
+      "durationSeconds": 0,
+      "transcript": "नेपाल प्रहरी साइबर ब्युरोबाट इन्स्पेक्टर बोलेको, तपाईंको नाममा पक्राउ पुर्जी छ, तुरुन्त ५० हजार इसेवामा जरिवाना तिर्नुहोस्",
+      "lang": "ne"
+    },
+    "riskLevel": "HIGH_RISK",
+    "score": 88,
+    "scamType": "नक्कली प्रहरी तथा भन्सार अधिकृतको धम्की कल",
+    "solutionSummary": "कल वा अडियोमा प्रहरी वा सरकारी अधिकृतको नाम लिएर हतार देखाउँदै पैसा माग्न खोजिएको संकेत छ। नेपाल प्रहरीले फोनमा पैसा वा जरिवाना कहिल्यै माग्दैन।",
+    "warningSigns": [
+      "तत्काल रकम नपठाए पक्राउ वा खाता बन्द हुने नक्कली धम्की",
+      "अपरिचित वा विदेशी नम्बरबाट आधिकारिक अधिकारी बनेर गरिएको कल",
+      "गोप्य पिन, पासवर्ड वा OTP मागेको"
+    ],
+    "actionSteps": [
+      "कल तुरुन्त काट्नुहोस् र कुनै पनि खातामा पैसा नपठाउनुहोस्।",
+      "नेपाल प्रहरी साइबर ब्युरो (०१-४२१२९२९) मा तुरुन्त जानकारी गराउनुहोस्।",
+      "आफ्नो बैंक वा eSewa/Khalti को पासवर्ड र पिन सुरक्षित राख्नुहोस्।"
+    ],
+    "source": "fallback-audio-analyzer"
+  },
+  {
+    "id": "chk-1793699949546-578",
+    "timestamp": "2026-11-03T09:59:09.546Z",
+    "customerSession": "Citizen-KTM-9699",
+    "toolType": "photo",
+    "toolNameNe": "फोटो / स्क्रिनसट जाँच",
+    "toolNameEn": "Photo & Screenshot Check",
+    "inputSummary": "स्क्रिनसट नोट: फेसबुकमा आइफोन १५ प्रो रु. २० हजारमा दिने अफर",
+    "fullInput": {
+      "notes": "फेसबुकमा आइफोन १५ प्रो रु. २० हजारमा दिने अफर",
+      "mimeType": "image/png",
+      "lang": "ne"
+    },
+    "riskLevel": "CAUTION",
+    "score": 65,
+    "scamType": "शंकास्पद सोसल मिडिया विज्ञापन / स्क्रिनसट",
+    "solutionSummary": "स्क्रिनसटमा अनलाइन ठगीसँग मिल्ने सम्भावित संकेतहरू (अत्यधिक छुट वा अग्रिम भुक्तानी) भेटिएका छन्। सामान हातमा नपरी पैसा नपठाउनुहोस्।",
+    "warningSigns": [
+      "सामान प्राप्त हुनुअगावै रकम स्थानान्तरण गर्न भनिएको संकेत",
+      "कमेन्ट बन्द वा अपरिचित प्रोफाइल"
+    ],
+    "actionSteps": [
+      "Cash on Delivery (सामान पाएपछि मात्र पैसा तिर्ने) विकल्प माग्नुहोस्।",
+      "कुनै पनि व्यक्तिगत इसेवा वा बैंक खातामा अग्रिम रकम नपठाउनुहोस्।",
+      "पसलको दर्ता नम्बर (PAN/VAT) र भौतिक ठेगाना माग्नुहोस्।"
+    ],
+    "source": "fallback-image-analyzer"
+  },
+  {
+    "id": "chk-1001",
+    "timestamp": "2026-11-03T09:27:25.407Z",
+    "toolType": "shopping",
+    "toolNameNe": "सोसल मिडिया किनमेल जाँच",
+    "toolNameEn": "Social Media Shopping Check",
+    "customerSession": "User-KTM-4829",
+    "userId": "usr-101",
+    "userName": "उमेश शर्मा",
+    "userEmail": "umeshprovidhy@gmail.com",
+    "userPhone": "9812345678",
+    "userRole": "citizen",
+    "location": "Kathmandu, Nepal",
+    "inputSummary": "iPhone 15 Pro Max advertised for Rs. 42,000, 50% advance requested",
+    "fullInput": {
+      "productName": "iPhone 15 Pro Max",
+      "marketPrice": 195000,
+      "advertisedPrice": 42000,
+      "advancePayment": 21000,
+      "sellerPlatform": "Facebook Marketplace",
+      "paymentMethod": "Personal eSewa QR",
+      "commentsDisabled": true
+    },
+    "riskLevel": "HIGH_RISK",
+    "score": 95,
+    "scamType": "अस्वाभाविक सस्तो मूल्य र अग्रिम रकम ठगी (Marketplace Advance Scam)",
+    "solutionSummary": "बजार मूल्य रु. १,९५,००० को फोन रु. ४२,००० मा देखाएर २१,००० अग्रिम मागिएको छ। यो ९९% ठगीको जाल हो।",
+    "warningSigns": [
+      "बजार मूल्यभन्दा ७८% अस्वाभाविक सस्तो मूल्य",
+      "सामान हात नपरी ५०% अग्रिम रकम व्यक्तिगत इसेवामा मागिएको",
+      "सोसल मिडिया विज्ञापनमा कमेन्ट बन्द गरिएको"
+    ],
+    "actionSteps": [
+      "कुनै पनि अग्रिम रकम इसेवा वा बैंक खातामा नपठाउनुहोस्।",
+      "Cash on Delivery (COD) विकल्प माग्नुहोस्।",
+      "विक्रेताको आधिकारिक पसल ठेगाना र PAN/VAT माग गर्नुहोस्।"
+    ],
+    "source": "gemini-3.8-flash"
+  },
+  {
+    "id": "chk-1002",
+    "timestamp": "2026-11-03T09:00:25.408Z",
+    "toolType": "message",
+    "toolNameNe": "सन्देश र SMS जाँच",
+    "toolNameEn": "Message & SMS Check",
+    "customerSession": "User-PKR-9120",
+    "userId": "usr-102",
+    "userName": "रमेश अधिकारी",
+    "userEmail": "ramesh@example.com",
+    "userPhone": "9841234567",
+    "userRole": "citizen",
+    "location": "Pokhara, Nepal",
+    "inputSummary": "तपाईंको eSewa खाता KYC अपडेट गर्न तलको लिंक खोल्नुहोस् OTP आवश्यक छ",
+    "fullInput": {
+      "message": "तपाईंको eSewa खाता KYC समय सकिएको छ, २४ घण्टाभित्र अपडेट नगरे खाता रोक्का हुनेछ। तुरुन्त http://esewa-update-kyc.top मा गएर OTP हाल्नुहोस्।"
+    },
+    "riskLevel": "HIGH_RISK",
+    "score": 98,
+    "scamType": "बैंक तथा वालेट फिसिङ र OTP चोरी (KYC Impersonation Phishing)",
+    "solutionSummary": "eSewa को नाममा नक्कली सन्देश पठाएर पासवर्ड र OTP चोर्ने प्रयास गरिएको छ।",
+    "warningSigns": [
+      "२४ घण्टाभित्र खाता बन्द हुने कृत्रिम त्रास र हतार",
+      "असुरक्षित र नक्कली डोमेन (.top)",
+      "गोप्य OTP र प्रमाण माग गरिएको"
+    ],
+    "actionSteps": [
+      "लिंकमा क्लिक नगर्नुहोस् र कसैलाई OTP नदिनुहोस्।",
+      "eSewa को आधिकारिक एप खोलेर मात्र आफ्नो खाताको अवस्था हेर्नुहोस्।",
+      "शंकास्पद नम्बरलाई तत्काल ब्लक र रिपोर्ट गर्नुहोस्।"
+    ],
+    "source": "gemini-3.8-flash"
+  },
+  {
+    "id": "chk-1003",
+    "timestamp": "2026-11-03T08:10:25.408Z",
+    "toolType": "link",
+    "toolNameNe": "लिंक जाँच",
+    "toolNameEn": "Link / URL Check",
+    "customerSession": "User-BTL-1422",
+    "userId": "usr-103",
+    "userName": "सीता श्रेष्ठ",
+    "userEmail": "sita.shrestha@gmail.com",
+    "userPhone": "9851122334",
+    "userRole": "citizen",
+    "location": "Butwal, Nepal",
+    "inputSummary": "http://192.168.1.10/nabil-smart-login/claim-bonus",
+    "fullInput": {
+      "url": "http://192.168.1.10/nabil-smart-login/claim-bonus"
+    },
+    "riskLevel": "HIGH_RISK",
+    "score": 92,
+    "scamType": "नक्कली बैंक लगइन फिसिङ (Raw IP Banking Spoof)",
+    "solutionSummary": "नबिल बैंकको नाम प्रयोग गरी सिधै IP ठेगानामा खोलिएको असुरक्षित फिसिङ लिंक।",
+    "warningSigns": [
+      "डोमेन नामको सट्टा सिधै संख्यात्मक IP ठेगाना प्रयोग भएको",
+      "HTTP असुरक्षित प्रोटोकल (डाटा इन्क्रिप्ट नहुने)",
+      "बोनसको प्रलोभन देखाएर लगइन विवरण माग्ने ढाँचा"
+    ],
+    "actionSteps": [
+      "यो लिंकमा कुनै पनि बैंक युजरनेम वा पासवर्ड नराख्नुहोस्।",
+      "बैंकको आधिकारिक वेबसाइट (nabilbank.com) वा आधिकारिक मोबाइल एप मात्र प्रयोग गर्नुहोस्।"
+    ],
+    "source": "gemini-3.8-flash"
+  },
+  {
+    "id": "chk-1004",
+    "timestamp": "2026-11-03T06:45:25.408Z",
+    "toolType": "voice",
+    "toolNameNe": "आवाजबाट जाँच",
+    "toolNameEn": "Voice Scam Assistant",
+    "customerSession": "User-BRT-3310",
+    "userId": "usr-101",
+    "userName": "उमेश शर्मा",
+    "userEmail": "umeshprovidhy@gmail.com",
+    "userPhone": "9812345678",
+    "userRole": "citizen",
+    "location": "Biratnagar, Nepal",
+    "inputSummary": "कसैले फोन गरेर २५ लाख चिठ्ठा पर्यो, कर तिर्न ५० हजार पठाउ भन्यो",
+    "fullInput": {
+      "transcript": "नमस्ते, मलाई वाट्सएपमा फोन आयो र २५ लाखको चिठ्ठा परेको छ भन्यो। त्यो रकम पाउन पहिले ५० हजार ट्याक्स शुल्क इसेवा गर्नुपर्छ रे। के म पैसा पठाउँ?"
+    },
+    "riskLevel": "HIGH_RISK",
+    "score": 99,
+    "scamType": "चिठ्ठा तथा पार्सल शुल्क ठगी (Lottery Advance Fee Scam)",
+    "solutionSummary": "क्लासिक चिट्ठा ठगी हो। कुनै पनि आधिकारिक संस्थाले चिट्ठाको पैसा पाउन पहिले अग्रिम रकम माग्दैन।",
+    "warningSigns": [
+      "नकिनेको चिट्ठामा २५ लाख जितेको झुटो दाबी",
+      "रकम प्राप्त गर्न पहिले ५० हजार अग्रिम शुल्क माग",
+      "व्यक्तिगत वालेटमा रकम स्थानान्तरण गर्न दबाब"
+    ],
+    "actionSteps": [
+      "एक रुपैयाँ पनि पैसा नपठाउनुहोस्।",
+      "सम्बन्धित नम्बरलाई तुरुन्त ब्लक गर्नुहोस्।",
+      "परिवार र साथीभाइलाई पनि यस्तो फोनबाट जोगिन सचेत गराउनुहोस्।"
+    ],
+    "source": "gemini-3.8-flash"
+  },
+  {
+    "id": "chk-1005",
+    "timestamp": "2026-11-03T04:45:25.408Z",
+    "toolType": "photo",
+    "toolNameNe": "फोटो / स्क्रिनसट जाँच",
+    "toolNameEn": "Photo & Screenshot Check",
+    "customerSession": "User-DHK-5511",
+    "userId": "usr-102",
+    "userName": "रमेश अधिकारी",
+    "userEmail": "ramesh@example.com",
+    "userPhone": "9841234567",
+    "userRole": "citizen",
+    "location": "Dhankuta, Nepal",
+    "inputSummary": "TikTok भिडियो लाइक गरेर दैनिक रु. ५००० कमाउने स्क्रिनसट",
+    "fullInput": {
+      "notes": "टिकटकमा भिडियो लाइक गर्दा पैसा दिने र पछि भिआइपी टास्कका लागि रु. १५ हजार डिपोजिट गर्न भनेको च्याट"
+    },
+    "riskLevel": "HIGH_RISK",
+    "score": 94,
+    "scamType": "टेलिग्राम जब / टास्क ठगी (Telegram Part-time Job Ponzi)",
+    "solutionSummary": "सुरुमा केही सय रुपैयाँ दिएर विश्वास जित्ने र पछि ठूलो रकम डिपोजिट गराएर सम्पर्कविहीन हुने टास्क ठगी।",
+    "warningSigns": [
+      "अस्वाभाविक र अवास्तविक दैनिक आम्दानी (रु. ५०००)",
+      "टेलिग्राम च्यानलमा बोलाएर टास्क दिने शैली",
+      "पैसा निकाल्न पहिले धरौटी वा अपग्रेड रकम माग्ने ढाँचा"
+    ],
+    "actionSteps": [
+      "कुनै पनि धरौटी वा भिआइपी रकम डिपोजिट नगर्नुहोस्।",
+      "टेलिग्राम ग्रुपबाट तुरुन्त बाहिर निस्कनुहोस्।"
+    ],
+    "source": "gemini-3.8-flash-vision"
+  }
+]

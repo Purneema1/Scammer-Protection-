@@ -1,5 +1,7 @@
+import { isValidImageFile, optimizeImageForAnalysis } from './imageHelper';
+
 /**
- * Direct file upload helper for images and videos with automatic metadata detection
+ * Direct file upload helper for images, videos, and audio with automatic metadata detection
  * (dimensions, aspect ratio, duration, and canvas thumbnail extraction).
  */
 
@@ -22,50 +24,62 @@ export interface VideoMetadata {
   thumbnailDataUrl?: string;
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('फाइल पढ्न असफल भयो (Failed to read file)'));
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
  * Upload a local file (image or video) directly to the server
  */
 export async function uploadFileToServer(file: File): Promise<UploadResult> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  let fileData: string;
+  let mimeType = file.type || 'application/octet-stream';
+  let fileName = file.name || 'file';
 
-    reader.onerror = () => {
-      reject(new Error('फाइल पढ्न असफल भयो (Failed to read file)'));
-    };
-
-    reader.onload = async () => {
-      try {
-        const fileData = reader.result as string;
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileData,
-            mimeType: file.type,
-          }),
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Upload failed (${response.status}): ${errText}`);
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-          throw new Error(data.error || 'Upload error');
-        }
-
-        resolve(data);
-      } catch (err) {
-        reject(err);
+  // Automatically optimize images so 15MB phone snapshots upload in ~100ms
+  if (isValidImageFile(file)) {
+    try {
+      const optimized = await optimizeImageForAnalysis(file);
+      fileData = optimized.dataUrl;
+      mimeType = optimized.mimeType;
+      if (!fileName.toLowerCase().endsWith('.jpg') && !fileName.toLowerCase().endsWith('.jpeg')) {
+        fileName = fileName.replace(/\.[^.]+$/, '') + '.jpg';
       }
-    };
+    } catch {
+      fileData = await readFileAsDataUrl(file);
+    }
+  } else {
+    fileData = await readFileAsDataUrl(file);
+  }
 
-    reader.readAsDataURL(file);
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fileName,
+      fileData,
+      mimeType,
+    }),
   });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Upload failed (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data.error || 'Upload error');
+  }
+
+  return data;
 }
 
 function toNepaliDigits(str: string): string {
