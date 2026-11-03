@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -24,17 +25,25 @@ import {
   requestPasswordReset,
   resetUserPassword,
   getAllUsers,
+  getGlobalAppSettings,
+  saveGlobalAppSettings,
 } from './server-store.ts';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const UPLOAD_DIR = path.join(__dirname, 'data', 'uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Helper to reliably extract citizen user identity from request
 function extractCheckUserInfo(req: express.Request) {
@@ -832,6 +841,79 @@ app.post('/api/admin/verify-pin', (req, res) => {
     return res.json({ success: true, authorized: true, role: 'admin' });
   }
   return res.status(401).json({ success: false, error: 'गलत पिन कोड (Invalid Admin PIN)' });
+});
+
+// ==========================================
+// GLOBAL APP SETTINGS (Sync across all users)
+// ==========================================
+app.get('/api/settings', (req, res) => {
+  try {
+    const settings = getGlobalAppSettings();
+    return res.json({ success: true, settings });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/settings', (req, res) => {
+  try {
+    const { content, media, videos, theme } = req.body;
+    const updated = saveGlobalAppSettings({ content, media, videos, theme });
+    return res.json({ success: true, settings: updated });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==========================================
+// DIRECT FILE UPLOAD (Images & Videos)
+// ==========================================
+app.post('/api/upload', (req, res) => {
+  try {
+    const { fileName, fileData, mimeType } = req.body;
+    if (!fileData || typeof fileData !== 'string') {
+      return res.status(400).json({ success: false, error: 'No file data received' });
+    }
+
+    // Strip base64 header if present (e.g. data:image/png;base64, or data:video/mp4;base64,)
+    const commaIndex = fileData.indexOf(',');
+    const base64Data = commaIndex !== -1 ? fileData.slice(commaIndex + 1) : fileData;
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Extension deduction
+    let ext = path.extname(fileName || '').toLowerCase();
+    if (!ext || ext.length > 6) {
+      if (mimeType?.includes('video/mp4')) ext = '.mp4';
+      else if (mimeType?.includes('video/webm')) ext = '.webm';
+      else if (mimeType?.includes('video/quicktime')) ext = '.mov';
+      else if (mimeType?.includes('video/x-matroska')) ext = '.mkv';
+      else if (mimeType?.includes('image/png')) ext = '.png';
+      else if (mimeType?.includes('image/jpeg')) ext = '.jpg';
+      else if (mimeType?.includes('image/webp')) ext = '.webp';
+      else if (mimeType?.includes('image/gif')) ext = '.gif';
+      else if (mimeType?.includes('image/svg')) ext = '.svg';
+      else ext = '.bin';
+    }
+
+    const rawName = path.basename(fileName || 'file', ext);
+    const sanitizedBase = rawName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 32) || 'media';
+    const uniqueFileName = `${Date.now()}_${sanitizedBase}${ext}`;
+    const destinationPath = path.join(UPLOAD_DIR, uniqueFileName);
+
+    fs.writeFileSync(destinationPath, buffer);
+
+    const publicUrl = `/uploads/${uniqueFileName}`;
+    return res.json({
+      success: true,
+      url: publicUrl,
+      fileName: uniqueFileName,
+      size: buffer.length,
+      mimeType: mimeType || 'application/octet-stream',
+    });
+  } catch (err: any) {
+    console.error('File upload error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Admin Stats Endpoint

@@ -378,44 +378,7 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
           </div>
         </div>
 
-        {/* Optional Admin Control Card */}
-        {currentUser?.role === 'admin' && (
-          <div
-            onClick={() => onNavigate('admin')}
-            className="rounded-2xl bg-[#121c33] hover:bg-[#162444] border border-cyan-800/60 hover:border-cyan-400 shadow-xl transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden ring-1 ring-cyan-500/30 active:scale-[0.98]"
-          >
-            <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-900">
-              <img
-                src={mediaSettings.tools.admin || TOOL_PHOTOS.admin.image}
-                alt=""
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-100 filter brightness-105 contrast-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#121c33]/70 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute top-3 right-3">
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-cyan-950/90 backdrop-blur-md text-cyan-300 border border-cyan-700 shadow-sm">
-                  {isNe ? 'व्यवस्थापक' : 'Admin'}
-                </span>
-              </div>
-            </div>
-            <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
-                  {isNe ? 'व्यवस्थापक प्यानल (Admin Dashboard)' : 'Admin Dashboard'}
-                </h3>
-                <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
-                  {isNe
-                    ? 'प्रयोगकर्ताका स्क्यान रेकर्ड, तस्विर र भिडियो व्यवस्थापन, एआई निर्णय र समस्या टिकटहरूको प्रत्यक्ष नियन्त्रण।'
-                    : 'Manage banners, tools photos, awareness videos, verdicts, and citizen records.'}
-                </p>
-              </div>
-              <div className="pt-2 border-t border-cyan-800/60 flex items-center justify-between text-xs font-bold text-cyan-300 group-hover:text-cyan-200">
-                <span>{isNe ? 'एडमिन खोल्नुहोस्' : 'Open Admin'}</span>
-                
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

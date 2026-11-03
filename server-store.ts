@@ -99,6 +99,15 @@ const ISSUES_FILE = path.join(DATA_DIR, 'customer_issues.json');
 const COMMENTS_FILE = path.join(DATA_DIR, 'customer_comments.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RESETS_FILE = path.join(DATA_DIR, 'password_resets.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'app_settings.json');
+
+export interface GlobalAppSettings {
+  content?: any;
+  media?: any;
+  videos?: any[] | null;
+  theme?: any;
+  updatedAt?: string;
+}
 
 function readJsonFile<T>(filePath: string, defaultData: T): T {
   try {
@@ -831,5 +840,30 @@ export function incrementUserCheckCount(userId?: string) {
     user.lastLoginAt = new Date().toISOString();
     writeJsonFile(USERS_FILE, customerUsers);
   }
+}
+
+export function getGlobalAppSettings(): GlobalAppSettings {
+  return readJsonFile<GlobalAppSettings>(SETTINGS_FILE, {
+    content: null,
+    media: null,
+    videos: null,
+    theme: null,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function saveGlobalAppSettings(partial: Partial<GlobalAppSettings>): GlobalAppSettings {
+  const current = getGlobalAppSettings();
+  const updated: GlobalAppSettings = {
+    ...current,
+    ...partial,
+    content: partial.content !== undefined ? (partial.content ? { ...(current.content || {}), ...partial.content } : null) : current.content,
+    media: partial.media !== undefined ? (partial.media ? { ...(current.media || {}), ...partial.media } : null) : current.media,
+    videos: partial.videos !== undefined ? partial.videos : current.videos,
+    theme: partial.theme !== undefined ? (partial.theme ? { ...(current.theme || {}), ...partial.theme } : null) : current.theme,
+    updatedAt: new Date().toISOString(),
+  };
+  writeJsonFile(SETTINGS_FILE, updated);
+  return updated;
 }
 

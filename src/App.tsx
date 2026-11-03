@@ -47,6 +47,7 @@ import { BANNERS, TOOL_PHOTOS } from './constants/toolImages';
 import { getAppMediaSettings, AppMediaSettings } from './utils/mediaStorage';
 import { getAppContentSettings, AppContentSettings } from './utils/contentStorage';
 import { getAppThemeSettings, applyThemeToDOM, AppThemeSettings } from './utils/themeStorage';
+import { fetchAndApplyGlobalSettings } from './utils/globalSync';
 import { Language, UserAccount } from './types';
 import { t } from './translations';
 import { getStoredUser, setStoredUser } from './utils/auth';
@@ -68,20 +69,29 @@ export type PageView =
   | 'privacy'
   | 'admin';
 
-// Helper to determine initial page from URL path or hash (e.g. /admin or #/admin)
+// Helper to determine initial page from URL path or hash (e.g. /admin or #/admin or ?admin)
 function getInitialPageFromUrl(): PageView {
   if (typeof window === 'undefined') return 'home';
-  const path = window.location.pathname.toLowerCase();
-  const hash = window.location.hash.toLowerCase();
-  const search = new URLSearchParams(window.location.search);
+  const path = (window.location.pathname || '').toLowerCase();
+  const hash = (window.location.hash || '').toLowerCase();
+  const searchStr = (window.location.search || '').toLowerCase();
+  const fullHref = (window.location.href || '').toLowerCase();
+  const search = new URLSearchParams(window.location.search || '');
 
+  // Detect admin in ANY format: /admin, /admin/, #/admin, #admin, ?admin, ?page=admin
   if (
     path === '/admin' ||
     path.startsWith('/admin') ||
     path.endsWith('/admin') ||
-    hash === '#/admin' ||
+    path.includes('/admin') ||
+    path.includes('admin') ||
     hash.includes('admin') ||
-    search.get('page') === 'admin'
+    searchStr.includes('admin') ||
+    search.has('admin') ||
+    search.get('page') === 'admin' ||
+    fullHref.includes('/admin') ||
+    fullHref.includes('#admin') ||
+    fullHref.includes('?admin')
   ) {
     return 'admin';
   }
@@ -104,7 +114,12 @@ function getInitialPageFromUrl(): PageView {
   ];
 
   for (const page of validPages) {
-    if (path.includes(`/${page}`) || hash.includes(`#/${page}`) || search.get('page') === page) {
+    if (
+      path.includes(`/${page}`) ||
+      hash.includes(`#/${page}`) ||
+      hash.includes(page) ||
+      search.get('page') === page
+    ) {
       return page;
     }
   }
@@ -132,6 +147,18 @@ export default function App() {
     // Ensure active theme is applied to DOM on mount
     applyThemeToDOM();
 
+    // Immediately fetch authoritative global settings from server (sync across all users)
+    fetchAndApplyGlobalSettings();
+
+    // Periodic synchronization check every 10 seconds so all active users get admin changes
+    const syncTimer = setInterval(() => {
+      fetchAndApplyGlobalSettings();
+    }, 10000);
+
+    const handleWindowFocus = () => {
+      fetchAndApplyGlobalSettings();
+    };
+
     const handleAuthChange = () => {
       setCurrentUser(getStoredUser());
     };
@@ -150,6 +177,7 @@ export default function App() {
       setCurrentPage(page);
     };
 
+    window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('auth_state_changed', handleAuthChange);
     window.addEventListener('app_media_changed', handleMediaChange);
     window.addEventListener('app_content_changed', handleContentChange);
@@ -158,6 +186,8 @@ export default function App() {
     window.addEventListener('hashchange', handleLocationChange);
 
     return () => {
+      clearInterval(syncTimer);
+      window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('auth_state_changed', handleAuthChange);
       window.removeEventListener('app_media_changed', handleMediaChange);
       window.removeEventListener('app_content_changed', handleContentChange);
@@ -359,28 +389,33 @@ export default function App() {
   const currentTool = toolsInfo[currentPage];
 
   return (
-    <div className="min-h-screen bg-[#0b1220] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Top Header */}
-      <Header
-        lang={lang}
-        onToggleLang={toggleLanguage}
-        onOpenEmergency={handleOpenRescue}
-        onNavigateHome={() => navigateTo('home')}
-        onNavigateAdmin={() => navigateTo('admin')}
-        currentPage={currentPage}
-        currentUser={currentUser}
-        onOpenAuth={(mode) => {
-          setAuthModalMode(mode || 'signin');
-          setAuthModalOpen(true);
-        }}
-        onLogout={() => {
-          setStoredUser(null);
-          sessionStorage.removeItem('scam_admin_auth');
-          if (currentPage === 'admin') {
-            navigateTo('home');
-          }
-        }}
-      />
+    <div
+      className="min-h-screen flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200 transition-colors duration-200"
+      style={{
+        backgroundColor: 'var(--app-bg, #0b1220)',
+        color: 'var(--app-text-main, #f8fafc)',
+      }}
+    >
+      {/* Top Header (Public Navigation Only) */}
+      {currentPage !== 'admin' && (
+        <Header
+          lang={lang}
+          onToggleLang={toggleLanguage}
+          onOpenEmergency={handleOpenRescue}
+          onNavigateHome={() => navigateTo('home')}
+          onNavigateAdmin={() => navigateTo('admin')}
+          currentPage={currentPage}
+          currentUser={currentUser}
+          onOpenAuth={(mode) => {
+            setAuthModalMode(mode || 'signin');
+            setAuthModalOpen(true);
+          }}
+          onLogout={() => {
+            setStoredUser(null);
+            sessionStorage.removeItem('scam_admin_auth');
+          }}
+        />
+      )}
 
       {/* Main Container with Mobile App Safe Bottom Padding */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-8 space-y-6 sm:space-y-8 pb-28 md:pb-12">
@@ -554,9 +589,21 @@ export default function App() {
         )}
 
         {/* ======================================================== */}
-        {/* VIEW 2: DEDICATED SEPARATE PAGES FOR EACH TOOL          */}
+        {/* VIEW 2: ADMIN CONTROL PANEL (ISOLATED DEDICATED BACKOFFICE) */}
         {/* ======================================================== */}
-        {currentPage !== 'home' && (
+        {currentPage === 'admin' && (
+          <div className="animate-fadeIn">
+            <AdminDashboard
+              lang={lang}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* VIEW 3: DEDICATED SEPARATE PAGES FOR PUBLIC TOOLS       */}
+        {/* ======================================================== */}
+        {currentPage !== 'home' && currentPage !== 'admin' && (
           <div className="space-y-6 animate-fadeIn">
             {/* Top Back-To-Home Bar & Breadcrumb Navigation */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0f172a]/95 border border-slate-800/90 shadow-xl flex flex-wrap items-center justify-between gap-3 sticky top-[65px] z-30 backdrop-blur-md">
@@ -642,14 +689,6 @@ export default function App() {
                     className="px-2.5 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/40 text-xs font-medium cursor-pointer transition-colors"
                   >
                     {isNe ? 'उद्धार' : 'Rescue'}
-                  </button>
-                )}
-                {currentUser?.role === 'admin' && currentPage !== 'admin' && (
-                  <button
-                    onClick={() => navigateTo('admin')}
-                    className="px-2.5 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/40 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'एडमिन' : 'Admin'}
                   </button>
                 )}
               </div>
@@ -766,13 +805,6 @@ export default function App() {
               {currentPage === 'video' && (
                 <VideoCenter lang={lang} onNavigateTool={navigateTo} />
               )}
-
-              {currentPage === 'admin' && (
-                <AdminDashboard
-                  lang={lang}
-                  onNavigateHome={() => navigateTo('home')}
-                />
-              )}
             </div>
 
             {/* Bottom Navigation Return Strip */}
@@ -797,6 +829,34 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Public App Footer (Hidden in Admin Control Panel) */}
+        {currentPage !== 'admin' && (
+          <footer className="pt-6 border-t border-slate-800/80 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+              <span className="font-bold text-slate-300">Scamly Nepal</span>
+              <span>•</span>
+              <button
+                onClick={() => navigateTo('privacy')}
+                className="hover:text-cyan-400 cursor-pointer transition-colors"
+              >
+                {isNe ? 'गोपनीयता (Privacy)' : 'Privacy'}
+              </button>
+              <span>•</span>
+              <button
+                onClick={() => navigateTo('rescue')}
+                className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer transition-colors"
+              >
+                {isNe ? '🚨 आपतकालीन उद्धार' : '🚨 Emergency SOS'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-slate-400 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+              <span>{isNe ? 'नेपाल आधिकारिक डिजिटल सुरक्षा प्रणाली' : 'Official Digital Defense Portal'}</span>
+            </div>
+          </footer>
         )}
       </main>
 
@@ -838,16 +898,18 @@ export default function App() {
       />
 
       {/* Mobile App Native Bottom Navigation Bar */}
-      <MobileBottomNav
-        currentPage={currentPage}
-        onNavigate={navigateTo}
-        onOpenAuth={(mode) => {
-          setAuthModalMode(mode || 'signin');
-          setAuthModalOpen(true);
-        }}
-        currentUser={currentUser}
-        lang={lang}
-      />
+      {currentPage !== 'admin' && (
+        <MobileBottomNav
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onOpenAuth={(mode) => {
+            setAuthModalMode(mode || 'signin');
+            setAuthModalOpen(true);
+          }}
+          currentUser={currentUser}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

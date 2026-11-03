@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Menu,
   X,
@@ -18,8 +18,18 @@ import {
   Sparkles,
   Palette,
   Type,
+  Eye,
+  Layers,
+  Sliders,
+  Upload,
+  Film,
+  Loader2,
+  CheckCircle2,
+  FileVideo,
 } from 'lucide-react';
 import { Language } from '../types';
+import { MediaUploader } from './MediaUploader';
+import { extractVideoMetadata, uploadFileToServer } from '../utils/uploadHelper';
 import {
   getAppContentSettings,
   saveAppContentSettings,
@@ -41,12 +51,14 @@ import {
 import {
   THEME_PRESETS,
   FONT_OPTIONS,
+  BACKGROUND_VARIANTS,
   getAppThemeSettings,
   saveAppThemeSettings,
   resetAppThemeSettings,
   AppThemeSettings,
   ThemeId,
   FontFamilyId,
+  BackgroundVariantId,
 } from '../utils/themeStorage';
 import { TOOL_PHOTOS } from '../constants/toolImages';
 
@@ -75,9 +87,16 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
   const [videoList, setVideoList] = useState<ScamVideoItem[]>(() => getAppVideos());
   const [editingVideo, setEditingVideo] = useState<ScamVideoItem | null>(null);
   const [isAddingVideo, setIsAddingVideo] = useState(false);
+  const [videoSourceType, setVideoSourceType] = useState<'upload' | 'youtube'>('upload');
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<string | null>(null);
+  const [thumbUploading, setThumbUploading] = useState(false);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+  const thumbFileInputRef = useRef<HTMLInputElement>(null);
 
   // Theme & Font state
   const [themeSettings, setThemeSettings] = useState<AppThemeSettings>(() => getAppThemeSettings());
+  const [customHexInput, setCustomHexInput] = useState<string>(() => getAppThemeSettings().customPrimaryColor || '');
 
   // Video editor modal form
   const [videoForm, setVideoForm] = useState<Partial<ScamVideoItem>>({
@@ -86,9 +105,12 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
     descNe: '',
     descEn: '',
     youtubeId: '',
+    videoUrl: '',
+    aspectRatio: '16/9',
     category: 'wallet',
     duration: '०४:००',
     thumbnail: '',
+    isDirectUpload: false,
   });
 
   // Load latest settings on mount
@@ -96,7 +118,9 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
     setContentForm(getAppContentSettings());
     setMediaSettings(getAppMediaSettings());
     setVideoList(getAppVideos());
-    setThemeSettings(getAppThemeSettings());
+    const initialTheme = getAppThemeSettings();
+    setThemeSettings(initialTheme);
+    setCustomHexInput(initialTheme.customPrimaryColor || '');
   }, []);
 
   const showToast = (message: string) => {
@@ -125,15 +149,32 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
 
   const handleCustomAccentColor = (colorHex: string) => {
     const updated = { ...themeSettings, customPrimaryColor: colorHex };
+    setCustomHexInput(colorHex);
     setThemeSettings(updated);
     saveAppThemeSettings(updated);
     showToast(isNe ? 'कस्टम रङ लागू गरियो!' : 'Custom accent color applied!');
+  };
+
+  const handleSelectBackgroundVariant = (variantId: BackgroundVariantId) => {
+    const updated = { ...themeSettings, backgroundVariant: variantId };
+    setThemeSettings(updated);
+    saveAppThemeSettings(updated);
+    showToast(isNe ? 'पृष्ठभूमि भेरियन्ट परिवर्तन गरियो!' : 'Background variant applied!');
+  };
+
+  const handleClearCustomPrimary = () => {
+    const updated = { ...themeSettings, customPrimaryColor: undefined };
+    setCustomHexInput('');
+    setThemeSettings(updated);
+    saveAppThemeSettings(updated);
+    showToast(isNe ? 'थिमको पूर्वनिर्धारित रङ पुनःस्थापना गरियो!' : 'Theme default primary restored!');
   };
 
   const handleResetTheme = () => {
     if (window.confirm(isNe ? 'के तपाईं थिम सेटिङहरू पूर्वनिर्धारितमा फर्काउन चाहनुहुन्छ?' : 'Reset theme settings to default?')) {
       const def = resetAppThemeSettings();
       setThemeSettings(def);
+      setCustomHexInput('');
       showToast(isNe ? 'थिम पूर्वनिर्धारितमा फर्कियो!' : 'Theme settings reset to default!');
     }
   };
@@ -207,6 +248,9 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
   // ----------------------------------------------------
   const handleOpenAddVideo = () => {
     setEditingVideo(null);
+    setVideoSourceType('upload');
+    setVideoUploading(false);
+    setVideoUploadProgress(null);
     setVideoForm({
       id: `vid-${Date.now()}`,
       titleNe: '',
@@ -214,17 +258,95 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
       descNe: '',
       descEn: '',
       youtubeId: '',
+      videoUrl: '',
+      aspectRatio: '16/9',
       category: 'wallet',
       duration: '०४:००',
       thumbnail: '',
+      isDirectUpload: true,
     });
     setIsAddingVideo(true);
   };
 
   const handleOpenEditVideo = (v: ScamVideoItem) => {
     setEditingVideo(v);
-    setVideoForm({ ...v });
+    const isDirect =
+      v.isDirectUpload ||
+      Boolean(
+        v.videoUrl ||
+          (v.youtubeId &&
+            (v.youtubeId.startsWith('/uploads/') ||
+              v.youtubeId.endsWith('.mp4') ||
+              v.youtubeId.endsWith('.webm') ||
+              v.youtubeId.endsWith('.mov')))
+      );
+    setVideoSourceType(isDirect ? 'upload' : 'youtube');
+    setVideoUploading(false);
+    setVideoUploadProgress(null);
+    setVideoForm({
+      ...v,
+      isDirectUpload: Boolean(isDirect),
+      videoUrl: v.videoUrl || (isDirect ? v.youtubeId : undefined),
+    });
     setIsAddingVideo(true);
+  };
+
+  const handleVideoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setVideoUploading(true);
+      setVideoUploadProgress(
+        isNe ? 'भिडियो रिजोल्युसन तथा ढाँचा पहिचान गरिँदैछ...' : 'Detecting video dimensions & aspect ratio...'
+      );
+
+      const meta = await extractVideoMetadata(file);
+
+      setVideoUploadProgress(isNe ? 'सर्भरमा भिडियो अपलोड हुँदैछ...' : 'Uploading video file to server...');
+
+      const result = await uploadFileToServer(file);
+
+      setVideoForm((prev) => ({
+        ...prev,
+        youtubeId: result.url,
+        videoUrl: result.url,
+        isDirectUpload: true,
+        width: meta.width,
+        height: meta.height,
+        aspectRatio: meta.aspectRatio,
+        duration: prev.duration || meta.durationFormattedNe,
+        thumbnail: prev.thumbnail || meta.thumbnailDataUrl || '',
+        titleNe: prev.titleNe || file.name.replace(/\.[^/.]+$/, ''),
+        titleEn: prev.titleEn || file.name.replace(/\.[^/.]+$/, ''),
+      }));
+
+      setVideoUploadProgress(null);
+      showToast(isNe ? `भिडियो अपलोड भयो! (${meta.aspectRatioLabel})` : `Video uploaded! (${meta.aspectRatioLabel})`);
+    } catch (err: any) {
+      console.error('Video upload failed', err);
+      alert(err.message || (isNe ? 'भिडियो अपलोड गर्न सकिएन' : 'Failed to upload video'));
+    } finally {
+      setVideoUploading(false);
+      if (videoFileInputRef.current) videoFileInputRef.current.value = '';
+    }
+  };
+
+  const handleThumbFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setThumbUploading(true);
+      const result = await uploadFileToServer(file);
+      setVideoForm((prev) => ({ ...prev, thumbnail: result.url }));
+      showToast(isNe ? 'थम्बनेल तस्विर अपलोड भयो!' : 'Thumbnail image uploaded!');
+    } catch (err: any) {
+      alert(err.message || 'Thumbnail upload failed');
+    } finally {
+      setThumbUploading(false);
+      if (thumbFileInputRef.current) thumbFileInputRef.current.value = '';
+    }
   };
 
   const handleDeleteVideo = (id: string) => {
@@ -241,16 +363,31 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
       alert(isNe ? 'कृपया भिडियोको शीर्षक राख्नुहोस्।' : 'Please enter a video title.');
       return;
     }
-    const cleanYtId = extractYouTubeId(videoForm.youtubeId || '');
-    if (!cleanYtId) {
-      alert(isNe ? 'कृपया मान्य YouTube भिडियो ID वा URL राख्नुहोस्।' : 'Please enter a valid YouTube Video ID or URL.');
-      return;
+
+    const isDirect = videoSourceType === 'upload' || videoForm.isDirectUpload;
+    let videoSource = '';
+
+    if (isDirect) {
+      videoSource = videoForm.videoUrl || videoForm.youtubeId || '';
+      if (!videoSource) {
+        alert(isNe ? 'कृपया भिडियो फाइल अपलोड गर्नुहोस्।' : 'Please upload a video file.');
+        return;
+      }
+    } else {
+      const cleanYtId = extractYouTubeId(videoForm.youtubeId || '');
+      if (!cleanYtId) {
+        alert(isNe ? 'कृपया मान्य YouTube भिडियो ID वा URL राख्नुहोस्।' : 'Please enter a valid YouTube Video ID or URL.');
+        return;
+      }
+      videoSource = cleanYtId;
     }
 
     const finalThumb =
       videoForm.thumbnail && videoForm.thumbnail.trim().length > 5
         ? videoForm.thumbnail.trim()
-        : `https://img.youtube.com/vi/${cleanYtId}/hqdefault.jpg`;
+        : isDirect
+        ? 'https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=800&q=80'
+        : `https://img.youtube.com/vi/${videoSource}/hqdefault.jpg`;
 
     const newVideoItem: ScamVideoItem = {
       id: videoForm.id || `vid-${Date.now()}`,
@@ -258,7 +395,12 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
       titleEn: videoForm.titleEn || videoForm.titleNe || '',
       descNe: videoForm.descNe || '',
       descEn: videoForm.descEn || '',
-      youtubeId: cleanYtId,
+      youtubeId: videoSource,
+      videoUrl: isDirect ? videoSource : undefined,
+      aspectRatio: videoForm.aspectRatio || (isDirect ? '16/9' : undefined),
+      width: videoForm.width,
+      height: videoForm.height,
+      isDirectUpload: Boolean(isDirect),
       category: (videoForm.category as ScamVideoItem['category']) || 'wallet',
       duration: videoForm.duration || '०४:००',
       thumbnail: finalThumb,
@@ -325,15 +467,74 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
           </div>
         </div>
 
-        {/* Back to Home Button */}
-        <button
-          onClick={onNavigateHome}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer transition-all active:scale-95 shrink-0"
-        >
-          <ArrowLeft className="w-4 h-4 text-cyan-400" />
-          <span>{isNe ? 'गृहपृष्ठमा फर्कनुहोस्' : 'Back to Home'}</span>
-        </button>
+        {/* Global Sync Indicator */}
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/70 text-emerald-300 border border-emerald-700/50 text-xs font-bold shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden xs:inline">{isNe ? 'सबै प्रयोगकर्तामा स्वतः सिंक' : 'Live Global Sync'}</span>
+          </span>
+          {onNavigateHome && (
+            <button
+              onClick={onNavigateHome}
+              className="text-[11px] text-slate-400 hover:text-cyan-300 px-2.5 py-1.5 rounded-xl hover:bg-slate-800/60 border border-slate-700/50 transition-colors cursor-pointer"
+              title={isNe ? 'एप पूर्वावलोकन' : 'View App'}
+            >
+              {isNe ? 'एप पूर्वावलोकन ↗' : 'View App ↗'}
+            </button>
+          )}
+        </div>
       </header>
+
+      {/* Direct Horizontal Quick Navigation Tabs (Always Visible) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          onClick={() => setActiveSection('content')}
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            activeSection === 'content'
+              ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md font-black'
+              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>{isNe ? '१. सामग्री सम्पादन (Content)' : '1. Content'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('video')}
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            activeSection === 'video'
+              ? 'bg-purple-500 text-slate-950 border-purple-400 shadow-md font-black'
+              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800'
+          }`}
+        >
+          <Video className="w-4 h-4" />
+          <span>{isNe ? '२. भिडियो हब (Videos)' : '2. Videos'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('image')}
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            activeSection === 'image'
+              ? 'bg-teal-500 text-slate-950 border-teal-400 shadow-md font-black'
+              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>{isNe ? '३. तस्विर व्यवस्थापन (Images)' : '3. Images'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('theme')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            activeSection === 'theme'
+              ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 border-amber-300 shadow-lg font-black'
+              : 'bg-slate-900/80 hover:bg-slate-800 text-amber-300 border-amber-500/40'
+          }`}
+        >
+          <Palette className="w-4 h-4 text-amber-400" />
+          <span>{isNe ? '🎨 ४. थिम तथा फन्ट (Themes)' : '🎨 4. Themes & Fonts'}</span>
+        </button>
+      </div>
 
       {/* Save Success Toast */}
       {saveToast && (
@@ -495,18 +696,14 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
 
             {/* Drawer Bottom Actions */}
             <div className="pt-6 border-t border-slate-800 space-y-2.5">
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onNavigateHome();
-                }}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-cyan-500 text-slate-950 font-black text-xs cursor-pointer shadow-lg active:scale-95"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>{isNe ? 'एपको गृहपृष्ठमा जानुहोस्' : 'Return to App Homepage'}</span>
-              </button>
-              <div className="text-center text-[10px] text-slate-500">
-                Scamly Admin v2.0
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+                <p className="text-xs font-bold text-emerald-400">● {isNe ? 'केन्द्रीय डाटाबेस सिंक' : 'Live Cloud Sync'}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {isNe ? 'सबै प्रयोगकर्ता तथा उपकरणमा तुरुन्तै लागु हुन्छ' : 'Changes apply globally to all users'}
+                </p>
+              </div>
+              <div className="text-center text-[10px] text-slate-500 font-mono">
+                Scamly Admin Control Panel v2.0
               </div>
             </div>
           </div>
@@ -811,9 +1008,24 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     <p className="text-xs text-slate-400 line-clamp-2">
                       {isNe ? vid.descNe : vid.descEn}
                     </p>
-                    <div className="text-[11px] font-mono text-purple-300 flex items-center gap-1 pt-1">
-                      <span>YouTube ID:</span>
-                      <span className="bg-slate-900 px-1.5 py-0.5 rounded text-white">{vid.youtubeId}</span>
+                    <div className="text-[11px] font-mono text-purple-300 flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-500/40 text-[10px] font-bold text-purple-300">
+                        {vid.isDirectUpload || vid.youtubeId.startsWith('/uploads/')
+                          ? vid.aspectRatio === '9/16'
+                            ? '📱 9:16 Reel'
+                            : vid.aspectRatio === '1/1'
+                            ? '🔲 1:1 Square'
+                            : '📂 Direct Video'
+                          : '▶ YouTube'}
+                      </span>
+                      {vid.width && vid.height && (
+                        <span className="text-[10px] text-slate-400">
+                          {vid.width}x{vid.height}
+                        </span>
+                      )}
+                      <span className="text-slate-400 truncate max-w-[160px] text-[10px]">
+                        {vid.youtubeId}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -821,13 +1033,25 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                 {/* Video Card Action Buttons */}
                 <div className="p-3 bg-slate-900/60 border-t border-slate-800/80 flex items-center justify-between gap-2">
                   <a
-                    href={`https://www.youtube.com/watch?v=s${vid.youtubeId}`}
+                    href={
+                      vid.isDirectUpload || vid.youtubeId.startsWith('/uploads/')
+                        ? vid.videoUrl || vid.youtubeId
+                        : `https://www.youtube.com/watch?v=${vid.youtubeId}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-cyan-400 transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>{isNe ? 'YouTube मा हेर्नुहोस्' : 'Watch Link'}</span>
+                    <span>
+                      {vid.isDirectUpload || vid.youtubeId.startsWith('/uploads/')
+                        ? isNe
+                          ? 'भिडियो खोल्नुहोस्'
+                          : 'Open Video'
+                        : isNe
+                        ? 'YouTube मा हेर्नुहोस्'
+                        : 'Watch Link'}
+                    </span>
                   </a>
 
                   <div className="flex items-center gap-2">
@@ -855,8 +1079,8 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
 
           {/* Add / Edit Video Modal */}
           {isAddingVideo && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-              <div className="w-full max-w-lg bg-[#0e1628] border border-purple-500/50 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fadeIn overflow-y-auto">
+              <div className="w-full max-w-xl bg-[#0e1628] border border-purple-500/60 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto my-auto">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                   <h3 className="text-base font-black text-white flex items-center gap-2">
                     <Video className="w-5 h-5 text-purple-400" />
@@ -866,8 +1090,8 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                           ? 'भिडियो सम्पादन गर्नुहोस्'
                           : 'Edit Video'
                         : isNe
-                        ? 'नयाँ भिडियो थप्नुहोस्'
-                        : 'Add New Video'}
+                        ? 'नयाँ भिडियो थप्नुहोस् (Direct Upload or YouTube)'
+                        : 'Add Video (Direct Upload or YouTube)'}
                     </span>
                   </h3>
                   <button
@@ -879,25 +1103,170 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                 </div>
 
                 <form onSubmit={handleSaveVideoModal} className="space-y-4">
-                  <div className="space-y-1.5">
+                  {/* Source Mode Toggle: Direct Upload vs YouTube */}
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-300">
-                      {isNe ? 'YouTube भिडियो ID वा पुरा URL' : 'YouTube Video ID or Full URL'}
+                      {isNe ? 'भिडियो स्रोत छान्नुहोस् (Video Source)' : 'Choose Video Source'}
                     </label>
-                    <input
-                      type="text"
-                      value={videoForm.youtubeId || ''}
-                      onChange={(e) => setVideoForm({ ...videoForm, youtubeId: e.target.value })}
-                      placeholder="उदा: bB_UfRCOi-4 वा https://youtu.be/..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:border-purple-400 outline-none"
-                      required
-                    />
-                    <p className="text-[10px] text-slate-400">
-                      {isNe
-                        ? 'सिधा YouTube ID वा लिङ्क राख्नुहोस्, यसले स्वतः पहिचान गर्छ।'
-                        : 'Paste full YouTube link or 11-char ID.'}
-                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVideoSourceType('upload');
+                          setVideoForm((prev) => ({ ...prev, isDirectUpload: true }));
+                        }}
+                        className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
+                          videoSourceType === 'upload'
+                            ? 'bg-purple-600/30 text-purple-200 border-purple-500 shadow-md font-black'
+                            : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <Upload className="w-4 h-4 text-purple-400" />
+                        <span>{isNe ? '📂 सिधै भिडियो फाइल अपलोड' : 'Direct Video Upload'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVideoSourceType('youtube');
+                          setVideoForm((prev) => ({ ...prev, isDirectUpload: false }));
+                        }}
+                        className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
+                          videoSourceType === 'youtube'
+                            ? 'bg-purple-600/30 text-purple-200 border-purple-500 shadow-md font-black'
+                            : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <Film className="w-4 h-4 text-purple-400" />
+                        <span>{isNe ? '▶️ YouTube लिङ्क वा ID' : 'YouTube Link'}</span>
+                      </button>
+                    </div>
                   </div>
 
+                  {/* DIRECT VIDEO FILE UPLOAD ZONE */}
+                  {videoSourceType === 'upload' && (
+                    <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-800/40 space-y-3">
+                      <input
+                        ref={videoFileInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+                        className="hidden"
+                        onChange={handleVideoFileSelect}
+                      />
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-purple-300">
+                          {isNe ? 'भिडियो फाइल (MP4, WebM, MOV)' : 'Video File (MP4, WebM, MOV)'}
+                        </span>
+                        <span className="text-[10px] text-cyan-400 font-mono">
+                          {isNe ? 'कुनै पनि आकार (ठाडो/तेर्सो)' : 'Any Ratio (9:16 / 16:9 / 1:1)'}
+                        </span>
+                      </div>
+
+                      {/* Drop / Click Box */}
+                      <div
+                        onClick={() => !videoUploading && videoFileInputRef.current?.click()}
+                        className="border-2 border-dashed border-purple-500/40 hover:border-purple-400/80 bg-slate-900/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-2 cursor-pointer transition-colors"
+                      >
+                        {videoUploading ? (
+                          <div className="flex flex-col items-center gap-2 py-2 text-purple-300">
+                            <Loader2 className="w-7 h-7 animate-spin text-purple-400" />
+                            <span className="text-xs font-bold">{videoUploadProgress || (isNe ? 'अपलोड हुँदैछ...' : 'Uploading...')}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {isNe ? 'कृपया केही सेकेन्ड पर्खनुहोस्' : 'Please wait a moment'}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-10 h-10 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400">
+                              <FileVideo className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white">
+                                {videoForm.videoUrl || (videoForm.youtubeId && videoForm.youtubeId.startsWith('/uploads/'))
+                                  ? isNe
+                                    ? 'नयाँ भिडियो बदल्न यहाँ क्लिक गर्नुहोस्'
+                                    : 'Click to replace video file'
+                                  : isNe
+                                  ? 'कम्प्युटर वा मोबाइलबाट भिडियो फाइल छान्नुहोस्'
+                                  : 'Select video file from device'}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {isNe
+                                  ? 'MP4, WebM, MOV समर्थित • जुनसुकै साइज (ठाडो Reel वा तेर्सो HD)'
+                                  : 'Supports MP4, WebM, MOV • Any aspect ratio'}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Uploaded Video Metadata & Natural Ratio Preview */}
+                      {(videoForm.videoUrl || (videoForm.youtubeId && videoForm.youtubeId.startsWith('/uploads/'))) && (
+                        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>{isNe ? 'भिडियो लोड भयो' : 'Video Loaded'}</span>
+                            </span>
+                            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800">
+                              {videoForm.aspectRatio === '9/16'
+                                ? '📱 9:16 Vertical Reel'
+                                : videoForm.aspectRatio === '1/1'
+                                ? '🔲 1:1 Square'
+                                : '🖥️ 16:9 Widescreen'}
+                              {videoForm.width && videoForm.height ? ` (${videoForm.width}x${videoForm.height})` : ''}
+                            </span>
+                          </div>
+
+                          {/* Live Natural Ratio Video Player Preview */}
+                          <div
+                            className="w-full mx-auto bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center"
+                            style={{
+                              aspectRatio: videoForm.aspectRatio ? videoForm.aspectRatio.replace('/', ' / ') : '16 / 9',
+                              maxHeight: '220px',
+                            }}
+                          >
+                            <video
+                              key={videoForm.videoUrl || videoForm.youtubeId}
+                              src={videoForm.videoUrl || videoForm.youtubeId}
+                              controls
+                              className="w-full h-full object-contain max-h-[220px]"
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-400 text-center">
+                            {isNe
+                              ? '👆 एपमा पनि यो भिडियो यही प्राकृतिक अनुपात र साइजमा चल्नेछ।'
+                              : '👆 This video will play in this exact natural ratio across the app.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* YOUTUBE EMBED SOURCE INPUT */}
+                  {videoSourceType === 'youtube' && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-300">
+                        {isNe ? 'YouTube भिडियो ID वा पुरा URL' : 'YouTube Video ID or Full URL'}
+                      </label>
+                      <input
+                        type="text"
+                        value={videoForm.youtubeId || ''}
+                        onChange={(e) => setVideoForm({ ...videoForm, youtubeId: e.target.value })}
+                        placeholder="उदा: bB_UfRCOi-4 वा https://youtu.be/..."
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm font-mono focus:border-purple-400 outline-none"
+                        required={videoSourceType === 'youtube'}
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        {isNe
+                          ? 'सिधा YouTube ID वा लिङ्क राख्नुहोस्, यसले स्वतः पहिचान गर्छ।'
+                          : 'Paste full YouTube link or 11-char ID.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Title Inputs */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-300">
                       {isNe ? 'भिडियो शीर्षक (नेपाली)' : 'Video Title (Nepali)'}
@@ -925,6 +1294,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     />
                   </div>
 
+                  {/* Description */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-300">
                       {isNe ? 'विवरण (नेपाली)' : 'Description (Nepali)'}
@@ -938,6 +1308,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     />
                   </div>
 
+                  {/* Category and Duration */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-300">
@@ -975,16 +1346,53 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300">
-                      {isNe ? 'कस्टम थम्बनेल फोटो URL (ऐच्छिक)' : 'Custom Thumbnail URL (Optional)'}
-                    </label>
+                  {/* Direct Thumbnail Upload or URL */}
+                  <div className="space-y-1.5 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800">
+                    <input
+                      ref={thumbFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleThumbFileSelect}
+                    />
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-300">
+                        {isNe ? 'थम्बनेल कभर फोटो (Thumbnail Image)' : 'Thumbnail Cover Photo'}
+                      </label>
+                      {videoForm.thumbnail && (
+                        <span className="text-[10px] text-emerald-400 font-bold">✓ {isNe ? 'थम्बनेल सेट छ' : 'Ready'}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {videoForm.thumbnail && (
+                        <div className="w-12 h-12 rounded-xl bg-slate-950 overflow-hidden shrink-0 border border-slate-700">
+                          <img src={videoForm.thumbnail} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={thumbUploading}
+                        onClick={() => thumbFileInputRef.current?.click()}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                      >
+                        {thumbUploading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5 text-purple-400" />
+                        )}
+                        <span>{isNe ? 'सिधै थम्बनेल फोटो अपलोड' : 'Upload Thumbnail Image'}</span>
+                      </button>
+                    </div>
+
                     <input
                       type="url"
                       value={videoForm.thumbnail || ''}
                       onChange={(e) => setVideoForm({ ...videoForm, thumbnail: e.target.value })}
-                      placeholder="खाली छोडेमा YouTube को थम्बनेल आफै राखिन्छ"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs outline-none"
+                      placeholder="वा फोटोको URL राख्नुहोस्..."
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none font-mono"
                     />
                   </div>
 
@@ -999,7 +1407,8 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-black cursor-pointer shadow-lg active:scale-95 transition-all"
+                      disabled={videoUploading}
+                      className="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-black cursor-pointer shadow-lg active:scale-95 transition-all disabled:opacity-50"
                     >
                       {isNe ? 'भिडियो सेभ गर्नुहोस्' : 'Save Video'}
                     </button>
@@ -1053,105 +1462,37 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Hero Banner */}
-                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white">
-                      {isNe ? 'गृहपृष्ठ मुख्य ब्यानर (Hero Banner)' : 'Hero Banner'}
-                    </span>
-                    <span className="text-[10px] text-cyan-400 font-mono">16:9 / 3:1 HD</span>
-                  </div>
-                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
-                    <img
-                      src={mediaSettings.banners.hero}
-                      alt="Hero Banner Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <input
-                    type="url"
-                    value={mediaSettings.banners.hero}
-                    onChange={(e) => handleBannerUrlChange('hero', e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+                <MediaUploader
+                  label={isNe ? 'गृहपृष्ठ मुख्य ब्यानर (Hero Banner)' : 'Hero Banner'}
+                  badge="16:9 / 3:1 HD"
+                  currentUrl={mediaSettings.banners.hero}
+                  onUrlChange={(url) => handleBannerUrlChange('hero', url)}
+                  isNe={isNe}
+                />
 
-                {/* Rescue Banner */}
-                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white">
-                      {isNe ? 'आपतकालीन उद्दार ब्यानर (SOS Rescue Banner)' : 'Rescue Banner'}
-                    </span>
-                    <span className="text-[10px] text-rose-400 font-mono">SOS Emergency</span>
-                  </div>
-                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
-                    <img
-                      src={mediaSettings.banners.rescue}
-                      alt="Rescue Banner Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <input
-                    type="url"
-                    value={mediaSettings.banners.rescue}
-                    onChange={(e) => handleBannerUrlChange('rescue', e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+                <MediaUploader
+                  label={isNe ? 'आपतकालीन उद्दार ब्यानर (SOS Rescue Banner)' : 'Rescue Banner'}
+                  badge="SOS Emergency"
+                  currentUrl={mediaSettings.banners.rescue}
+                  onUrlChange={(url) => handleBannerUrlChange('rescue', url)}
+                  isNe={isNe}
+                />
 
-                {/* Complaint Banner */}
-                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white">
-                      {isNe ? 'साइबर ब्युरो उजुरी ब्यानर (Police Complaint)' : 'Complaint Banner'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-mono">Legal Bureau</span>
-                  </div>
-                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
-                    <img
-                      src={mediaSettings.banners.complaint}
-                      alt="Complaint Banner Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <input
-                    type="url"
-                    value={mediaSettings.banners.complaint}
-                    onChange={(e) => handleBannerUrlChange('complaint', e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+                <MediaUploader
+                  label={isNe ? 'साइबर ब्युरो उजुरी ब्यानर (Police Complaint)' : 'Complaint Banner'}
+                  badge="Legal Bureau"
+                  currentUrl={mediaSettings.banners.complaint}
+                  onUrlChange={(url) => handleBannerUrlChange('complaint', url)}
+                  isNe={isNe}
+                />
 
-                {/* Stats Banner */}
-                <div className="p-4 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white">
-                      {isNe ? 'ठगी तथ्याङ्क ब्यानर (Scam Trends / Stats)' : 'Stats Banner'}
-                    </span>
-                    <span className="text-[10px] text-purple-400 font-mono">Analytics</span>
-                  </div>
-                  <div className="h-36 rounded-2xl bg-slate-900 overflow-hidden relative border border-slate-800">
-                    <img
-                      src={mediaSettings.banners.stats}
-                      alt="Stats Banner Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <input
-                    type="url"
-                    value={mediaSettings.banners.stats}
-                    onChange={(e) => handleBannerUrlChange('stats', e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-emerald-400"
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+                <MediaUploader
+                  label={isNe ? 'ठगी तथ्याङ्क ब्यानर (Scam Trends / Stats)' : 'Stats Banner'}
+                  badge="Analytics"
+                  currentUrl={mediaSettings.banners.stats}
+                  onUrlChange={(url) => handleBannerUrlChange('stats', url)}
+                  isNe={isNe}
+                />
               </div>
             </div>
 
@@ -1166,45 +1507,18 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                 {Object.keys(TOOL_PHOTOS).map((toolKey) => {
                   const item = TOOL_PHOTOS[toolKey];
                   const currentImgUrl = mediaSettings.tools[toolKey] || item.image;
+                  const label = isNe ? item.tagNe || item.altNe : item.tagEn || item.altEn;
 
                   return (
-                    <div
+                    <MediaUploader
                       key={toolKey}
-                      className="p-3.5 rounded-2xl bg-[#0e1628] border border-slate-800 space-y-2.5 flex flex-col justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-white line-clamp-1">
-                            {isNe ? (item.tagNe || item.altNe) : (item.tagEn || item.altEn)}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded">
-                            {toolKey}
-                          </span>
-                        </div>
-
-                        {/* Image Preview */}
-                        <div className="h-28 rounded-xl bg-slate-900 overflow-hidden relative border border-slate-800">
-                          <img
-                            src={currentImgUrl}
-                            alt={item.altNe}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-400">
-                          {isNe ? 'फोटो लिङ्क (URL)' : 'Photo URL'}
-                        </label>
-                        <input
-                          type="url"
-                          value={currentImgUrl}
-                          onChange={(e) => handleToolPhotoChange(toolKey, e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-[11px] font-mono outline-none focus:border-emerald-400"
-                          required
-                        />
-                      </div>
-                    </div>
+                      label={label}
+                      badge={toolKey}
+                      compact={true}
+                      currentUrl={currentImgUrl}
+                      onUrlChange={(url) => handleToolPhotoChange(toolKey, url)}
+                      isNe={isNe}
+                    />
                   );
                 })}
               </div>
@@ -1228,31 +1542,44 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
       )}
 
       {/* ---------------------------------------------------- */}
-      {/* SECTION 4: THEME & FONT DESIGN (१० उज्यालो थिम तथा फन्ट) */}
+      {/* SECTION 4: THEME & APPEARANCE SETTINGS PANEL        */}
+      {/* (१० वटा विशिष्ट थिमहरू, प्राथमिक रङ, फन्ट, र पृष्ठभूमि भेरियन्ट) */}
       {/* ---------------------------------------------------- */}
       {activeSection === 'theme' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Section banner */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#1f1b0f] via-[#16130d] to-[#1f1b0f] border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+        <div className="space-y-8 animate-fadeIn">
+          {/* 1. Header & Quick Actions Banner */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#172033] via-[#0f172a] to-[#172033] border border-cyan-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="space-y-1.5 max-w-2xl">
+              <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold uppercase tracking-wider">
                 <Palette className="w-4 h-4" />
-                <span>{isNe ? 'थिम तथा दृश्य शैली व्यवस्थापन' : 'Theme & Visual Styling'}</span>
+                <span>{isNe ? 'थिम तथा दृश्य शैली व्यवस्थापन' : 'Theme & Appearance Settings'}</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-black text-white">
-                {isNe ? '१० वटा फरक उज्यालो थिमहरू र फन्ट चयन' : '10 Distinct Themes & Font Customizer'}
-              </h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {isNe
-                  ? 'उज्यालो (Daylight) वा डार्क थिम छान्नुहोस्, फन्ट बदल्नुहोस् र मुख्य रङ अनुकूलन गर्नुहोस्।'
-                  : 'Select daylight bright or dark themes, change typography fonts, and customize brand accent.'}
+                  ? '१० वटा विशिष्ट थिमहरू, प्राथमिक रङ, फन्ट र पृष्ठभूमि'
+                  : '10 Distinct Themes, Primary Colors, Fonts & Canvas'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {isNe
+                  ? 'उच्च कन्ट्रास्ट ग्यारेन्टी: पृष्ठभूमि उज्यालो (Light) हुँदा अक्षर गाढा (Dark) र पृष्ठभूमि डार्क हुँदा अक्षर चम्किलो सेतो (White) रहने गरी १० वटै प्रिमियम लक्जरी थिमहरू तयार पारिएका छन्। प्राथमिक रङ, फन्ट र क्यानभास भेरियन्ट तुरुन्तै एपभरि लागू हुन्छन्।'
+                  : 'Strict Contrast Guarantee: Light background enforces dark typography, and dark background enforces crystal white typography across all 10 premium themes. Instant global sync.'}
               </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
+                type="button"
+                onClick={onNavigateHome}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30 cursor-pointer active:scale-95 transition-all"
+              >
+                <Eye className="w-4 h-4" />
+                <span>{isNe ? 'एपमा हेर्नुहोस्' : 'Preview Public App'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleResetTheme}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer active:scale-95 transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer active:scale-95 transition-all"
               >
                 <RotateCcw className="w-4 h-4 text-amber-400" />
                 <span>{isNe ? 'पूर्वनिर्धारितमा फर्काउनुहोस्' : 'Reset Defaults'}</span>
@@ -1260,59 +1587,59 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
             </div>
           </div>
 
-          {/* Current Live Theme Status Card */}
-          <div className="p-5 rounded-3xl bg-[#0e1628] border border-cyan-500/30 shadow-xl space-y-4">
+          {/* 2. Active Theme Status & Telemetry Bar */}
+          <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                  {isNe ? 'हाल सक्रिय थिम' : 'Currently Active Theme'}
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block mb-0.5">
+                  {isNe ? 'हाल सक्रिय थिम र कन्फिगरेसन' : 'Currently Active Configuration'}
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
                   <span>
-                    {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.nameNe ||
-                      'उज्यालो हिमाल'}
+                    {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.nameNe || 'उज्यालो हिमाल'}
                   </span>
                   <span className="text-xs text-slate-400 font-normal">
-                    (
-                    {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.nameEn ||
-                      'Himalayan Snow Bright'}
-                    )
+                    ({THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.nameEn || 'Himalayan Snow Bright'})
                   </span>
                 </h3>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                  className={`text-xs font-bold px-3 py-1 rounded-full border ${
                     THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.mode === 'light'
                       ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                       : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                   }`}
                 >
                   {THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId)?.mode === 'light'
-                    ? '☀️ उज्यालो थिम (Light Mode)'
-                    : '🌙 डार्क थिम (Dark Mode)'}
+                    ? '☀️ उज्यालो (Daylight Light)'
+                    : '🌙 डार्क (Obsidian Dark)'}
                 </span>
 
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">
-                  {FONT_OPTIONS.find((f) => f.id === themeSettings.activeFontId)?.nameNe?.split(' ')[0] ||
-                    'मुक्ता'}
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-900 text-cyan-300 border border-slate-700 font-mono">
+                  {FONT_OPTIONS.find((f) => f.id === themeSettings.activeFontId)?.nameNe?.split(' ')[0] || 'मुक्ता'}
+                </span>
+
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-900 text-emerald-300 border border-slate-700 font-mono">
+                  {BACKGROUND_VARIANTS.find((b) => b.id === themeSettings.backgroundVariant)?.nameNe?.split(' ')[0] || 'पूर्वनिर्धारित'}
                 </span>
               </div>
             </div>
 
-            {/* Color chips preview */}
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs">
+            {/* Quick status chips */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
               {(() => {
                 const activePreset =
                   THEME_PRESETS.find((t) => t.id === themeSettings.activeThemeId) || THEME_PRESETS[0];
+                const activeColor = themeSettings.customPrimaryColor || activePreset.previewColors.primary;
                 return (
                   <>
                     <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 block">पृष्ठभूमि (Background)</span>
+                      <span className="text-[10px] text-slate-400 block">{isNe ? 'क्यानभास (Background)' : 'Background Canvas'}</span>
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          className="w-4 h-4 rounded-full border border-slate-600 shrink-0"
                           style={{ backgroundColor: activePreset.previewColors.bg }}
                         />
                         <span className="font-mono text-[11px] font-bold text-slate-200">
@@ -1322,10 +1649,10 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 block">कार्ड (Surface Card)</span>
+                      <span className="text-[10px] text-slate-400 block">{isNe ? 'कार्ड सतह (Surface Card)' : 'Surface Card'}</span>
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          className="w-4 h-4 rounded-full border border-slate-600 shrink-0"
                           style={{ backgroundColor: activePreset.previewColors.card }}
                         />
                         <span className="font-mono text-[11px] font-bold text-slate-200">
@@ -1335,26 +1662,34 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 block">मुख्य रङ (Primary)</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 block">{isNe ? 'मुख्य रङ (Primary)' : 'Primary Accent'}</span>
+                        {themeSettings.customPrimaryColor && (
+                          <button
+                            onClick={handleClearCustomPrimary}
+                            className="text-[9px] text-amber-400 hover:underline cursor-pointer"
+                            title={isNe ? 'मूल रङ फर्काउनुहोस्' : 'Reset to default color'}
+                          >
+                            {isNe ? 'मूल रङ' : 'Reset'}
+                          </button>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
-                          style={{
-                            backgroundColor:
-                              themeSettings.customPrimaryColor || activePreset.previewColors.primary,
-                          }}
+                          className="w-4 h-4 rounded-full border border-slate-600 shrink-0 shadow-sm"
+                          style={{ backgroundColor: activeColor }}
                         />
                         <span className="font-mono text-[11px] font-bold text-cyan-300">
-                          {themeSettings.customPrimaryColor || activePreset.previewColors.primary}
+                          {activeColor}
                         </span>
                       </div>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 block">अक्षर (Text Main)</span>
+                      <span className="text-[10px] text-slate-400 block">{isNe ? 'अक्षर रङ (Text)' : 'Text Contrast'}</span>
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
+                          className="w-4 h-4 rounded-full border border-slate-600 shrink-0"
                           style={{ backgroundColor: activePreset.previewColors.text }}
                         />
                         <span className="font-mono text-[11px] font-bold text-slate-200">
@@ -1364,22 +1699,9 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 block">किनारा (Border)</span>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-5 h-5 rounded-full border border-slate-600 shadow-sm shrink-0"
-                          style={{ backgroundColor: activePreset.previewColors.border }}
-                        />
-                        <span className="font-mono text-[11px] font-bold text-slate-200">
-                          {activePreset.previewColors.border}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 block">कार्ड स्टाइल (Radius)</span>
+                      <span className="text-[10px] text-slate-400 block">{isNe ? 'पृष्ठभूमि भेरियन्ट' : 'Background Variant'}</span>
                       <span className="font-mono text-xs font-bold text-emerald-400 block pt-0.5">
-                        {themeSettings.cardRoundness}
+                        {themeSettings.backgroundVariant}
                       </span>
                     </div>
                   </>
@@ -1388,19 +1710,158 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
             </div>
           </div>
 
-          {/* 1. TEN RICH DISTINCT THEMES GRID */}
+          {/* 3. Interactive Live Theme Sandbox / Preview Canvas */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#0b1220] border border-cyan-500/30 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-black text-white">
+                  {isNe ? 'प्रत्यक्ष अन्तरक्रियात्मक थिम स्यान्डबक्स (Live Theme Sandbox)' : 'Interactive Live Theme Sandbox'}
+                </h3>
+              </div>
+              <span className="text-xs text-slate-400">
+                {isNe ? 'तपाईंले चयन गरेका सबै शैलीहरू यहाँ तत्काल देखिनेछन्' : 'Renders with live active CSS variables'}
+              </span>
+            </div>
+
+            {/* Sandbox Container Rendered with Active Theme CSS Variables */}
+            <div
+              className={`p-5 sm:p-6 transition-all duration-200 border space-y-5 ${themeSettings.cardRoundness}`}
+              style={{
+                backgroundColor: 'var(--app-bg)',
+                color: 'var(--app-text-main)',
+                borderColor: 'var(--app-border)',
+                fontFamily: 'var(--app-font-family)',
+              }}
+            >
+              {/* Simulated Mini App Header */}
+              <div
+                className="p-3 sm:p-4 rounded-2xl flex items-center justify-between border"
+                style={{
+                  backgroundColor: 'var(--app-card-bg)',
+                  borderColor: 'var(--app-border)',
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white"
+                    style={{ backgroundColor: 'var(--app-accent-primary)' }}
+                  >
+                    S
+                  </div>
+                  <div>
+                    <span className="font-black text-sm block" style={{ color: 'var(--app-text-main)' }}>
+                      Scamly
+                    </span>
+                    <span className="text-[10px] block" style={{ color: 'var(--app-text-muted)' }}>
+                      {isNe ? 'नेपालको राष्ट्रिय साइबर सुरक्षा पोर्टल' : 'Nepal Cyber Defense Portal'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    className="px-2.5 py-1 rounded-full text-[11px] font-bold border"
+                    style={{
+                      backgroundColor: 'var(--app-card-subtle)',
+                      borderColor: 'var(--app-border-highlight)',
+                      color: 'var(--app-accent-primary)',
+                    }}
+                  >
+                    {isNe ? '✓ प्रणाली सक्रिय छ' : 'System Active'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Simulated Feature Search / Verification Card */}
+              <div
+                className="p-4 sm:p-5 rounded-2xl border space-y-3"
+                style={{
+                  backgroundColor: 'var(--app-card-bg)',
+                  borderColor: 'var(--app-border)',
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold" style={{ color: 'var(--app-text-main)' }}>
+                    {isNe
+                      ? 'सशंकित लिङ्क, फोन नम्बर वा बैंक खाता जाँच गर्नुहोस्'
+                      : 'Verify Suspicious Link, Phone or Bank Account'}
+                  </h4>
+                  <span
+                    className="text-[10px] font-mono px-2 py-0.5 rounded"
+                    style={{
+                      backgroundColor: 'var(--app-card-subtle)',
+                      color: 'var(--app-text-muted)',
+                    }}
+                  >
+                    AI Shield v2
+                  </span>
+                </div>
+
+                <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
+                  {isNe
+                    ? 'कुनै पनि ईसेवा, खल्ती वा बैंकिङ ठगी लिङ्क यहाँ राखेर तुरुन्तै प्रमाणीकरण गर्न सकिन्छ।'
+                    : 'Instant heuristic threat analysis for phishing links and payment scams in Nepal.'}
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <input
+                    type="text"
+                    readOnly
+                    value="https://nepal-lottery-gift.com/claim-reward"
+                    className="flex-1 px-3.5 py-2 rounded-xl text-xs font-mono border outline-none"
+                    style={{
+                      backgroundColor: 'var(--app-card-subtle)',
+                      borderColor: 'var(--app-border)',
+                      color: 'var(--app-text-main)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-xl text-xs font-black text-white cursor-pointer transition-all active:scale-95 shadow-md shrink-0"
+                    style={{
+                      backgroundColor: 'var(--app-accent-primary)',
+                    }}
+                  >
+                    {isNe ? 'स्क्यान गर्नुहोस्' : 'Scan Threat'}
+                  </button>
+                </div>
+              </div>
+
+              {/* CSS Variables Inspector pills */}
+              <div
+                className="p-2.5 rounded-xl border flex flex-wrap items-center gap-2 text-[10px] font-mono"
+                style={{
+                  backgroundColor: 'var(--app-card-subtle)',
+                  borderColor: 'var(--app-border)',
+                  color: 'var(--app-text-muted)',
+                }}
+              >
+                <span className="font-bold">{isNe ? 'सक्रिय CSS चरहरू:' : 'Active CSS Variables:'}</span>
+                <span>--app-bg: <strong style={{ color: 'var(--app-text-main)' }}>var(--app-bg)</strong></span>
+                <span>·</span>
+                <span>--app-card-bg: <strong style={{ color: 'var(--app-text-main)' }}>var(--app-card-bg)</strong></span>
+                <span>·</span>
+                <span>--app-accent-primary: <strong style={{ color: 'var(--app-accent-primary)' }}>var(--app-accent-primary)</strong></span>
+                <span>·</span>
+                <span>--app-font-family: <strong style={{ color: 'var(--app-text-main)' }}>var(--app-font-family)</strong></span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. TEN RICH DISTINCT THEMES GRID */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>
+                <h3 className="text-base font-black text-white">
                   {isNe
-                    ? '१० वटा थिमहरू (विशेष उज्यालो तथा सफा विकल्पहरू)'
-                    : '10 Distinct Themes (Bright & Clean Options)'}
-                </span>
-              </h3>
+                    ? '१० वटा विशिष्ट रङ थिमहरू (१० Distinct Color Themes)'
+                    : '10 Distinct Color Themes (Bright Daylight & Dark)'}
+                </h3>
+              </div>
               <span className="text-xs text-slate-400">
-                {isNe ? 'क्लिक गर्नासाथ तत्काल परिवर्तन हुनेछ' : 'Changes apply immediately on click'}
+                {isNe ? '१-क्लिकमा तत्काल सक्रिय हुने' : 'Click to apply instantly'}
               </span>
             </div>
 
@@ -1410,44 +1871,108 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                 return (
                   <div
                     key={preset.id}
-                    className={`p-4 rounded-3xl transition-all border flex flex-col justify-between gap-3 ${
+                    className={`p-5 rounded-3xl transition-all border flex flex-col justify-between gap-4 ${
                       isActive
                         ? 'bg-[#121c32] border-cyan-400 shadow-xl shadow-cyan-500/10 ring-2 ring-cyan-400/40'
                         : 'bg-[#0e1628] hover:bg-[#121a30] border-slate-800'
                     }`}
                   >
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
+                      {/* Theme Header */}
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px] flex items-center justify-center">
-                              {index + 1}
-                            </span>
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 border"
+                            style={{
+                              backgroundColor: preset.previewColors.card,
+                              color: preset.previewColors.primary,
+                              borderColor: preset.previewColors.border,
+                            }}
+                          >
+                            {index + 1}
+                          </span>
+                          <div>
                             <h4 className="text-sm font-black text-white">{preset.nameNe}</h4>
+                            <p className="text-[11px] text-slate-400 font-medium">{preset.nameEn}</p>
                           </div>
-                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                            {preset.nameEn}
-                          </p>
                         </div>
 
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            preset.mode === 'light'
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                              : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                          }`}
-                        >
-                          {preset.mode === 'light' ? '☀️ उज्यालो (Light)' : '🌙 डार्क (Dark)'}
-                        </span>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              preset.mode === 'light'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                            }`}
+                          >
+                            {preset.mode === 'light' ? '☀️ उज्यालो (Daylight)' : '🌙 डार्क (Dark)'}
+                          </span>
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">
+                            {preset.mode === 'light'
+                              ? (isNe ? '✒️ गाढा अक्षर (Dark Text)' : '✒️ Dark Letters')
+                              : (isNe ? '❄️ सेतो अक्षर (White Text)' : '❄️ White Letters')}
+                          </span>
+                        </div>
                       </div>
 
                       <p className="text-xs text-slate-300 leading-relaxed">
                         {isNe ? preset.taglineNe : preset.taglineEn}
                       </p>
 
-                      {/* Color Palette Preview Bar */}
-                      <div className="p-2 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 font-bold">
+                      {/* Mini Live Preview Card inside each theme */}
+                      <div
+                        className="p-3 rounded-2xl border space-y-2"
+                        style={{
+                          backgroundColor: preset.previewColors.bg,
+                          borderColor: preset.previewColors.border,
+                        }}
+                      >
+                        {/* Mini Top bar */}
+                        <div
+                          className="px-2.5 py-1 rounded-lg flex items-center justify-between border"
+                          style={{
+                            backgroundColor: preset.previewColors.card,
+                            borderColor: preset.previewColors.border,
+                          }}
+                        >
+                          <span
+                            className="text-[10px] font-black"
+                            style={{ color: preset.previewColors.text }}
+                          >
+                            Scamly UI
+                          </span>
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: preset.previewColors.primary }}
+                          />
+                        </div>
+
+                        {/* Mini content with button */}
+                        <div
+                          className="p-2 rounded-lg border flex items-center justify-between gap-2"
+                          style={{
+                            backgroundColor: preset.previewColors.card,
+                            borderColor: preset.previewColors.border,
+                          }}
+                        >
+                          <span
+                            className="text-[10px] font-bold truncate"
+                            style={{ color: preset.previewColors.text }}
+                          >
+                            {isNe ? 'साइबर सुरक्षा कवच' : 'Active Defense'}
+                          </span>
+                          <span
+                            className="px-2 py-0.5 rounded text-[9px] font-bold text-white shrink-0"
+                            style={{ backgroundColor: preset.previewColors.primary }}
+                          >
+                            {isNe ? 'सुरक्षित' : 'Safe'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Color Palette Preview Swatches */}
+                      <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-400 font-bold">
                           {isNe ? 'रङ प्यालेट:' : 'Color Palette:'}
                         </span>
                         <div className="flex items-center gap-1.5">
@@ -1471,11 +1996,17 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                             style={{ backgroundColor: preset.previewColors.text }}
                             title="Text Color"
                           />
+                          <span
+                            className="w-5 h-5 rounded-lg border border-slate-600 shadow-sm"
+                            style={{ backgroundColor: preset.previewColors.border }}
+                            title="Border Color"
+                          />
                         </div>
                       </div>
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => handleSelectThemePreset(preset.id)}
                       className={`w-full py-2.5 rounded-xl font-bold text-xs cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2 ${
                         isActive
@@ -1498,19 +2029,178 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
             </div>
           </div>
 
-          {/* 2. TEXT FONT TYPOGRAPHY SELECTION */}
-          <div className="space-y-4 pt-4 border-t border-slate-800">
+          {/* 5. BACKGROUND VARIANT SELECTOR */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-sm font-black text-white">
+                  {isNe ? 'पृष्ठभूमि भेरियन्ट (Background Canvas Variants)' : 'Background Canvas Variants'}
+                </h3>
+              </div>
+              <span className="text-xs text-slate-400">
+                {isNe ? 'क्यानभास र कार्ड सतहको टोन अनुकूलन' : 'Tailor canvas depth and border contrast'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {BACKGROUND_VARIANTS.map((v) => {
+                const isSelected = themeSettings.backgroundVariant === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => handleSelectBackgroundVariant(v.id)}
+                    className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-[#142340] border-cyan-400 shadow-md ring-1 ring-cyan-400/50'
+                        : 'bg-slate-900/90 hover:bg-slate-800/80 border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-white">{v.nameNe}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                      </div>
+                      <span className="text-[10px] text-cyan-400/80 font-mono block">{v.nameEn}</span>
+                      <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
+                        {isNe ? v.descriptionNe : v.descriptionEn}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded text-center block ${
+                        isSelected
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {isSelected ? (isNe ? 'सक्रिय छ' : 'Active') : (isNe ? 'चयन गर्नुहोस्' : 'Select')}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 6. PRIMARY ACCENT COLOR PICKER */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-black text-white">
+                  {isNe ? 'प्राथमिक रङ अनुकूलन (Primary Accent Color)' : 'Primary Accent Color Customizer'}
+                </h3>
+              </div>
+              {themeSettings.customPrimaryColor && (
+                <button
+                  type="button"
+                  onClick={handleClearCustomPrimary}
+                  className="text-xs text-amber-400 hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>{isNe ? 'थिमको मूल रङ फर्काउनुहोस्' : 'Reset to Theme Default'}</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400">
+              {isNe
+                ? 'तपाईंले छान्नुभएको प्राथमिक रङ मुख्य बटन, ब्यानर, एक्टिभ ट्याब र सुरक्षा सूचकहरूमा तुरुन्तै लागू हुनेछ।'
+                : 'Selected primary accent color is applied to buttons, highlights, active tabs, and cyber badges.'}
+            </p>
+
+            {/* Curated Swatch Palette */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {[
+                { name: 'Sky Blue', hex: '#0284c7' },
+                { name: 'Emerald', hex: '#059669' },
+                { name: 'Golden Amber', hex: '#d97706' },
+                { name: 'Royal Blue', hex: '#2563eb' },
+                { name: 'Rose Coral', hex: '#e11d48' },
+                { name: 'Lavender', hex: '#7c3aed' },
+                { name: 'Arctic Teal', hex: '#0891b2' },
+                { name: 'Nepal Crimson', hex: '#dc2626' },
+                { name: 'Neon Cyan', hex: '#06b6d4' },
+                { name: 'Titanium Slate', hex: '#334155' },
+              ].map((c) => {
+                const isSelected =
+                  themeSettings.customPrimaryColor?.toLowerCase() === c.hex.toLowerCase();
+                return (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => handleCustomAccentColor(c.hex)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all active:scale-95 ${
+                      isSelected
+                        ? 'bg-slate-800 border-cyan-400 shadow-sm ring-1 ring-cyan-400/40 text-white'
+                        : 'bg-slate-900 border-slate-700 hover:border-slate-500 text-slate-300'
+                    }`}
+                  >
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-slate-600 shrink-0 shadow-sm"
+                      style={{ backgroundColor: c.hex }}
+                    />
+                    <span>{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Color Input & Hex Code Entry */}
+            <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-300">
+                  {isNe ? 'कलर ह्विल (Color Wheel):' : 'Color Wheel:'}
+                </span>
+                <input
+                  type="color"
+                  value={themeSettings.customPrimaryColor || '#0284c7'}
+                  onChange={(e) => handleCustomAccentColor(e.target.value)}
+                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+                  title={isNe ? 'आफ्नै रङ छान्नुहोस्' : 'Pick custom color'}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-slate-400">HEX:</span>
+                <input
+                  type="text"
+                  value={customHexInput}
+                  onChange={(e) => setCustomHexInput(e.target.value)}
+                  placeholder="#0284c7"
+                  className="w-28 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customHexInput.trim().startsWith('#') && customHexInput.trim().length >= 4) {
+                      handleCustomAccentColor(customHexInput.trim());
+                    } else {
+                      showToast(isNe ? 'कृपया मान्य HEX कोड (#xxxxxx) राख्नुहोस्' : 'Please enter a valid HEX color (#xxxxxx)');
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs cursor-pointer active:scale-95 transition-all"
+                >
+                  {isNe ? 'लागू गर्नुहोस्' : 'Apply'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 7. TYPOGRAPHY / FONT FAMILY SELECTOR */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <Type className="w-4 h-4 text-cyan-400" />
-                <span>
+                <h3 className="text-sm font-black text-white">
                   {isNe
                     ? 'अक्षर फन्ट छनोट (Typography Font Styles)'
                     : 'Typography & Text Font Styles'}
-                </span>
-              </h3>
+                </h3>
+              </div>
               <span className="text-xs text-slate-400">
-                {isNe ? 'नेपाली र अंग्रेजी दुवैमा स्पष्ट' : 'Optimized for Nepali & English'}
+                {isNe ? 'नेपाली र अंग्रेजी दुवैमा उच्च स्पष्टता' : 'Optimized for Nepali & English legibility'}
               </span>
             </div>
 
@@ -1524,7 +2214,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     className={`p-4 rounded-3xl transition-all border cursor-pointer space-y-3 ${
                       isFontActive
                         ? 'bg-[#121c32] border-cyan-400 shadow-xl shadow-cyan-500/10 ring-2 ring-cyan-400/40'
-                        : 'bg-[#0e1628] hover:bg-[#121a30] border-slate-800'
+                        : 'bg-[#0c1424] hover:bg-[#121a30] border-slate-800'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -1537,7 +2227,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                     </div>
 
                     <div
-                      className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1.5"
+                      className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1.5"
                       style={{ fontFamily: font.fontFamily }}
                     >
                       <p className="text-sm font-bold text-white leading-snug">
@@ -1556,7 +2246,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                           : 'bg-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
-                      {isFontActive ? (isNe ? '✓ सक्रिय छ' : 'Selected') : (isNe ? 'फन्ट छान्नुहोस्' : 'Select Font')}
+                      {isFontActive ? (isNe ? '✓ यो फन्ट सक्रिय छ' : 'Selected') : (isNe ? 'यो फन्ट छान्नुहोस्' : 'Select Font')}
                     </button>
                   </div>
                 );
@@ -1564,58 +2254,8 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
             </div>
           </div>
 
-          {/* 3. BRAND ACCENT COLOR FINE-TUNING */}
-          <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-4">
-            <h3 className="text-sm font-black text-white flex items-center gap-2">
-              <Palette className="w-4 h-4 text-emerald-400" />
-              <span>{isNe ? 'मुख्य सुरक्षा रङ (Accent Color Picker)' : 'Primary Accent Color'}</span>
-            </h3>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {[
-                { name: 'Sky Blue', hex: '#0284c7' },
-                { name: 'Emerald', hex: '#059669' },
-                { name: 'Golden Amber', hex: '#d97706' },
-                { name: 'Royal Blue', hex: '#2563eb' },
-                { name: 'Rose', hex: '#e11d48' },
-                { name: 'Lavender', hex: '#7c3aed' },
-                { name: 'Teal Arctic', hex: '#0891b2' },
-                { name: 'Crimson', hex: '#dc2626' },
-                { name: 'Neon Cyan', hex: '#06b6d4' },
-                { name: 'Slate Gray', hex: '#334155' },
-              ].map((c) => (
-                <button
-                  key={c.hex}
-                  type="button"
-                  onClick={() => handleCustomAccentColor(c.hex)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 cursor-pointer transition-all active:scale-95"
-                >
-                  <span
-                    className="w-4 h-4 rounded-full border border-slate-600 shrink-0"
-                    style={{ backgroundColor: c.hex }}
-                  />
-                  <span className="text-xs font-bold text-slate-300">{c.name}</span>
-                </button>
-              ))}
-
-              {/* Custom Color Input */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700">
-                <span className="text-xs font-bold text-slate-400">
-                  {isNe ? 'कस्टम रङ:' : 'Custom:'}
-                </span>
-                <input
-                  type="color"
-                  value={themeSettings.customPrimaryColor || '#0284c7'}
-                  onChange={(e) => handleCustomAccentColor(e.target.value)}
-                  className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
-                  title={isNe ? 'आफ्नै रङ छान्नुहोस्' : 'Pick custom color'}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 4. CARD CORNER ROUNDNESS STYLES */}
-          <div className="p-5 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
+          {/* 8. CARD CORNER ROUNDNESS STYLES */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#0e1628] border border-slate-800 space-y-3">
             <h3 className="text-sm font-black text-white">
               {isNe ? 'कार्ड कुना शैली (Card Corner Radius Style)' : 'Card Roundness Style'}
             </h3>
@@ -1639,7 +2279,7 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
                       saveAppThemeSettings(updated);
                       showToast(isNe ? 'कार्ड शैली परिवर्तन गरियो!' : 'Card style updated!');
                     }}
-                    className={`p-3 rounded-2xl border text-xs font-bold text-left cursor-pointer transition-all ${
+                    className={`p-3.5 rounded-2xl border text-xs font-bold text-left cursor-pointer transition-all ${
                       isSelected
                         ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400'
                         : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border-slate-700'
@@ -1653,23 +2293,33 @@ export function AdminDashboard({ lang, onNavigateHome }: AdminDashboardProps) {
             </div>
           </div>
 
-          {/* Bottom Save Bar */}
-          <div className="p-4 rounded-2xl bg-[#0c1424] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="text-xs text-slate-400">
+          {/* 9. BOTTOM GLOBAL PERSISTENCE ACTION BAR */}
+          <div className="p-5 rounded-3xl bg-gradient-to-r from-[#0c1424] via-[#101b33] to-[#0c1424] border border-cyan-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <span className="text-xs text-slate-300 leading-relaxed">
               {isNe
-                ? '✓ छानिएका थिम र फन्ट सेटिङहरू एपमा तुरुन्तै लागू भइसकेका छन्।'
-                : '✓ Selected theme and font changes have been saved and applied.'}
+                ? '✓ छानिएका थिम, रङ, फन्ट र पृष्ठभूमि सेटिङहरू तत्कालै सुरक्षित हुन्छन् र सम्पूर्ण एपमा प्रत्यक्ष देखिन्छन्।'
+                : '✓ Selected theme, color, font, and background settings are instantly saved and active globally.'}
             </span>
-            <button
-              onClick={() => {
-                saveAppThemeSettings(themeSettings);
-                showToast(isNe ? 'थिम र फन्ट सुरक्षित गरियो!' : 'Theme settings confirmed and saved!');
-              }}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-teal-400 hover:from-amber-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow-lg active:scale-95 transition-all shrink-0"
-            >
-              <Save className="w-4 h-4" />
-              <span>{isNe ? 'थिम र फन्ट सुरक्षित गर्नुहोस्' : 'Save Theme & Fonts'}</span>
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={onNavigateHome}
+                className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs cursor-pointer active:scale-95 transition-all"
+              >
+                {isNe ? 'एप हेर्नुहोस्' : 'View Public App'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  saveAppThemeSettings(themeSettings);
+                  showToast(isNe ? 'थिम र फन्ट सुरक्षित गरियो!' : 'Theme settings confirmed and saved globally!');
+                }}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-teal-400 hover:from-amber-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm cursor-pointer shadow-lg active:scale-95 transition-all"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isNe ? 'थिम सेटिङहरू सुरक्षित गर्नुहोस्' : 'Save Theme Settings'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

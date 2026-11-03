@@ -16,15 +16,20 @@ export interface ScamVideoItem {
   titleEn: string;
   descNe: string;
   descEn: string;
-  youtubeId: string; // YouTube video ID or full embed URL
+  youtubeId: string; // YouTube video ID or full embed URL, or uploaded URL
+  videoUrl?: string; // Direct uploaded video file URL (e.g. /uploads/xyz.mp4)
+  aspectRatio?: string; // e.g. '16/9', '9/16', '1/1', '4/3', or exact `${w}/${h}`
+  width?: number; // uploaded video native pixel width
+  height?: number; // uploaded video native pixel height
+  isDirectUpload?: boolean;
   category: 'wallet' | 'shopping' | 'telegram' | 'police' | 'ai';
   duration: string;
   thumbnail: string;
   relatedTool?: string;
 }
 
-const STORAGE_MEDIA_KEY = 'scam_app_media_settings_v1';
-const STORAGE_VIDEOS_KEY = 'scam_app_videos_v1';
+export const STORAGE_MEDIA_KEY = 'scam_app_media_settings_v1';
+export const STORAGE_VIDEOS_KEY = 'scam_app_videos_v1';
 
 // Default initial video library curated for Nepali cyber awareness
 export const DEFAULT_VIDEOS: ScamVideoItem[] = [
@@ -127,6 +132,12 @@ export function saveAppMediaSettings(settings: AppMediaSettings): void {
   try {
     localStorage.setItem(STORAGE_MEDIA_KEY, JSON.stringify(settings));
     window.dispatchEvent(new Event('app_media_changed'));
+    // Sync to server for all users globally
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ media: settings }),
+    }).catch(() => {});
   } catch (err) {
     console.error('Failed to save media settings', err);
   }
@@ -156,6 +167,12 @@ export function saveAppVideos(videos: ScamVideoItem[]): void {
   try {
     localStorage.setItem(STORAGE_VIDEOS_KEY, JSON.stringify(videos));
     window.dispatchEvent(new Event('app_videos_changed'));
+    // Sync to server for all users globally
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videos }),
+    }).catch(() => {});
   } catch (err) {
     console.error('Failed to save videos', err);
   }

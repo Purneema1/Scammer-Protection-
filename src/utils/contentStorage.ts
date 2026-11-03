@@ -15,7 +15,7 @@ export interface AppContentSettings {
   complaintNoticeEn: string;
 }
 
-const STORAGE_CONTENT_KEY = 'scam_app_content_settings_v1';
+export const STORAGE_CONTENT_KEY = 'scam_app_content_settings_v1';
 
 export const DEFAULT_CONTENT: AppContentSettings = {
   appTitle: 'Scamly',
@@ -51,6 +51,12 @@ export function saveAppContentSettings(content: AppContentSettings): void {
   try {
     localStorage.setItem(STORAGE_CONTENT_KEY, JSON.stringify(content));
     window.dispatchEvent(new CustomEvent('app_content_changed'));
+    // Push to server for global synchronization
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    }).catch(() => {});
   } catch (err) {
     console.error('Failed to save app content settings:', err);
   }
@@ -60,6 +66,11 @@ export function resetAppContentSettings(): AppContentSettings {
   try {
     localStorage.removeItem(STORAGE_CONTENT_KEY);
     window.dispatchEvent(new CustomEvent('app_content_changed'));
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: DEFAULT_CONTENT }),
+    }).catch(() => {});
   } catch (err) {
     console.error('Failed to reset app content settings:', err);
   }

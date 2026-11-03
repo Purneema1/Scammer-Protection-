@@ -22,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onOpenAuth,
   onLogout,
+  currentPage,
 }) => {
   const isNe = lang === 'ne';
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -54,11 +55,11 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Right Side: English / Nepali language switcher and User */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
           {/* 1. Language Switcher (नेपाली / English) */}
           <button
             onClick={onToggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 transition-all active:scale-95 cursor-pointer shadow-sm select-none"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 transition-all active:scale-95 cursor-pointer shadow-sm select-none"
             title={isNe ? 'Switch language to English' : 'नेपाली भाषामा बदल्नुहोस्'}
             aria-label="Switch Language"
           >
@@ -71,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* 2. User Button (Profile if logged in / Sign in if not) */}
+          {/* 3. User Button (Profile if logged in / Sign in if not) */}
           {currentUser ? (
             <div className="relative" ref={userMenuRef}>
               <button
@@ -81,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 text-slate-950 font-black text-[11px] flex items-center justify-center">
                   {currentUser.name ? currentUser.name.slice(0, 1).toUpperCase() : 'U'}
                 </div>
-                <span className="max-w-[75px] sm:max-w-[120px] truncate text-cyan-300 font-bold">
+                <span className="max-w-[70px] sm:max-w-[120px] truncate text-cyan-300 font-bold hidden sm:inline">
                   {currentUser.name ? currentUser.name.split(' ')[0] : (isNe ? 'प्रयोगकर्ता' : 'User')}
                 </span>
                 <span className="text-[10px] text-slate-400">▼</span>
@@ -107,16 +108,18 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
 
                   <div className="p-1.5 space-y-1">
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        if (onNavigateAdmin) onNavigateAdmin();
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 hover:bg-cyan-950/40 transition-colors cursor-pointer flex items-center justify-between"
-                    >
-                      <span>{isNe ? 'व्यवस्थापक (Admin)' : 'Admin Portal'}</span>
-                      <span>→</span>
-                    </button>
+                    {currentUser.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          if (onNavigateAdmin) onNavigateAdmin();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 hover:bg-cyan-950/40 transition-colors cursor-pointer flex items-center justify-between"
+                      >
+                        <span>{isNe ? '🔐 व्यवस्थापक (Admin)' : '🔐 Admin Portal'}</span>
+                        <span>→</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
