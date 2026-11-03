@@ -16,13 +16,29 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({ lang }) => {
     if (/android/i.test(navigator.userAgent)) return 'android';
     return 'android';
   });
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return (
+        localStorage.getItem('pwa_dismissed') === 'true' ||
+        localStorage.getItem('pwa_installed') === 'true'
+      );
+    } catch {
+      return false;
+    }
+  });
   const [copied, setCopied] = useState(false);
 
-  // If already running as installed standalone PWA or dismissed, do not display banner
-  if (isInstalled || dismissed) {
+  // If already running as installed standalone PWA, dismissed once, or in preview iframe, never show
+  if (isInstalled || dismissed || isIframe) {
     return null;
   }
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem('pwa_dismissed', 'true');
+    } catch {}
+  };
 
   const handleCopyLink = () => {
     try {
@@ -84,7 +100,7 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({ lang }) => {
           </button>
 
           <button
-            onClick={() => setDismissed(true)}
+            onClick={handleDismiss}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-xs"
             title={isNe ? 'हटाउनुहोस्' : 'Dismiss'}
           >

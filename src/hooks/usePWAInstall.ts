@@ -7,16 +7,41 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+        document.referrer.includes('android-app://') ||
+        localStorage.getItem('pwa_installed') === 'true'
+      );
+    } catch {
+      return false;
+    }
+  });
   const [isIOS, setIsIOS] = useState(false);
   const [isIframe, setIsIframe] = useState(false);
 
   useEffect(() => {
-    // Detect standalone mode (already running as installed PWA)
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    setIsInstalled(isStandalone);
+    // Detect standalone mode (already running as installed PWA or marked installed in storage)
+    let isStandalone = false;
+    try {
+      isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+        document.referrer.includes('android-app://') ||
+        localStorage.getItem('pwa_installed') === 'true';
+    } catch {
+      isStandalone = false;
+    }
+
+    if (isStandalone) {
+      setIsInstalled(true);
+      try {
+        localStorage.setItem('pwa_installed', 'true');
+      } catch {}
+    }
 
     // Detect iOS devices
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -31,6 +56,16 @@ export function usePWAInstall() {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      // If already installed or dismissed, never trigger or show prompt
+      try {
+        if (
+          localStorage.getItem('pwa_installed') === 'true' ||
+          localStorage.getItem('pwa_dismissed') === 'true'
+        ) {
+          return;
+        }
+      } catch {}
+
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
@@ -38,6 +73,9 @@ export function usePWAInstall() {
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      try {
+        localStorage.setItem('pwa_installed', 'true');
+      } catch {}
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -56,13 +94,16 @@ export function usePWAInstall() {
     if (outcome === 'accepted') {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      try {
+        localStorage.setItem('pwa_installed', 'true');
+      } catch {}
       return true;
     }
     return false;
   };
 
   return {
-    isInstallable: !!deferredPrompt,
+    isInstallable: !isInstalled && !!deferredPrompt,
     isInstalled,
     isIOS,
     isIframe,

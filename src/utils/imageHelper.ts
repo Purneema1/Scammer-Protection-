@@ -14,21 +14,45 @@ export interface ProcessedImage {
 
 /**
  * Checks if a file is an acceptable image (checks MIME type and file extension fallback)
+ * Ultra-permissive so no mobile photo or screenshot gets rejected with "milena" errors.
  */
 export function isValidImageFile(file: File): boolean {
-  if (file.type && file.type.startsWith('image/')) {
+  if (!file) return false;
+  const name = (file.name || '').toLowerCase();
+  const type = (file.type || '').toLowerCase();
+
+  // Exclude explicitly non-image types
+  if (type.startsWith('video/') || type.startsWith('audio/')) return false;
+  if (/\.(mp4|mov|avi|mkv|webm|mp3|wav|m4a|ogg|aac|zip|rar|exe|apk|pdf|doc|docx)$/i.test(name)) {
+    return false;
+  }
+
+  // Allow all standard image types
+  if (type.startsWith('image/')) return true;
+
+  // Mobile camera / screenshot / WhatsApp photos often have empty type or application/octet-stream
+  if (!type || type === 'application/octet-stream') {
+    return file.size > 0 && file.size < 60 * 1024 * 1024;
+  }
+
+  const ext = name.split('.').pop()?.toLowerCase();
+  if (ext && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'heif', 'svg', 'jfif', 'tiff', 'dng', 'raw'].includes(ext)) {
     return true;
   }
-  // Fallback check on file extension for mobile devices
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  return Boolean(ext && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'heif', 'svg'].includes(ext));
+
+  // Any non-empty reasonable file is permitted to be decoded
+  return file.size > 0 && file.size < 60 * 1024 * 1024;
 }
 
 /**
  * Resizes and compresses an image client-side to ensure lightning-fast upload
  * and flawless AI Vision OCR scanning without huge payload errors.
  */
-export async function optimizeImageForAnalysis(file: File, maxDimension = 1600, quality = 0.88): Promise<ProcessedImage> {
+export async function optimizeImageForAnalysis(
+  file: File,
+  maxDimension = 1600,
+  quality = 0.88
+): Promise<ProcessedImage> {
   return new Promise((resolve, reject) => {
     // If it's an SVG, load as text/dataURL directly
     if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
@@ -52,13 +76,13 @@ export async function optimizeImageForAnalysis(file: File, maxDimension = 1600, 
     }
 
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('फोटो पढ्न सकिएन (Failed to read image file)'));
+    reader.onerror = () => reject(new Error('तस्बिर पढ्न सकिएन (Failed to read image file)'));
 
     reader.onload = (e) => {
       const img = new Image();
       img.onerror = () => {
-        // If Image cannot decode (e.g. raw HEIC on unsupported browser), return raw base64
-        const rawUrl = e.target?.result as string;
+        // If Image element cannot decode (e.g. raw HEIC on unsupported browser), return raw base64 safely
+        const rawUrl = (e.target?.result as string) || '';
         const commaIdx = rawUrl.indexOf(',');
         resolve({
           dataUrl: rawUrl,
@@ -71,8 +95,8 @@ export async function optimizeImageForAnalysis(file: File, maxDimension = 1600, 
       };
 
       img.onload = () => {
-        let width = img.naturalWidth || img.width;
-        let height = img.naturalHeight || img.height;
+        let width = img.naturalWidth || img.width || 1200;
+        let height = img.naturalHeight || img.height || 800;
 
         // Downscale if larger than maxDimension
         if (width > maxDimension || height > maxDimension) {
@@ -91,7 +115,7 @@ export async function optimizeImageForAnalysis(file: File, maxDimension = 1600, 
         const ctx = canvas.getContext('2d');
 
         if (!ctx) {
-          const rawUrl = e.target?.result as string;
+          const rawUrl = (e.target?.result as string) || '';
           const commaIdx = rawUrl.indexOf(',');
           resolve({
             dataUrl: rawUrl,

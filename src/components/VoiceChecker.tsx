@@ -99,9 +99,16 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
   const timerIntervalRef = useRef<any>(null);
   const recognitionRef = useRef<any>(null);
   const isRecordingRef = useRef<boolean>(false);
+  const accumulatedTranscriptRef = useRef<string>('');
+  const transcriptRef = useRef<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize Speech Recognition once
+  // Sync transcriptRef
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
+
+  // Initialize Speech Recognition with continuous multi-sentence accumulator
   useEffect(() => {
     const supported = isSpeechRecognitionSupported();
     setRecognitionSupported(supported);
@@ -116,16 +123,15 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
       recognition.lang = isNe ? 'ne-NP' : 'en-US';
 
       recognition.onresult = (event: any) => {
-        let fullTranscript = '';
+        let sessionTranscript = '';
         for (let i = 0; i < event.results.length; i++) {
-          fullTranscript += event.results[i][0].transcript + ' ';
+          sessionTranscript += event.results[i][0].transcript + ' ';
         }
-        if (fullTranscript.trim()) {
-          setTranscript((prev) => {
-            const trimmed = fullTranscript.trim();
-            return trimmed.length > prev.length ? trimmed : prev;
-          });
-        }
+        const accumulated = accumulatedTranscriptRef.current;
+        const combined = accumulated
+          ? `${accumulated} ${sessionTranscript}`.trim()
+          : sessionTranscript.trim();
+        setTranscript(combined);
       };
 
       recognition.onerror = (event: any) => {
@@ -139,14 +145,21 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
         }
       };
 
-      // Continuous auto-restart while recording is active to avoid default 2-sec browser cutoffs
+      // Continuous auto-restart with delayed callback to prevent Chrome/Android cutoff
       recognition.onend = () => {
+        if (transcriptRef.current) {
+          accumulatedTranscriptRef.current = transcriptRef.current;
+        }
         if (isRecordingRef.current) {
-          try {
-            recognition.start();
-          } catch {
-            // Already active or temporarily busy
-          }
+          setTimeout(() => {
+            if (isRecordingRef.current && recognitionRef.current) {
+              try {
+                recognitionRef.current.start();
+              } catch {
+                // Already started or busy
+              }
+            }
+          }, 150);
         }
       };
 
@@ -180,23 +193,35 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
   // Start continuous audio recording
   const startRecording = async () => {
     setErrorMsg('');
+    accumulatedTranscriptRef.current = '';
+    setTranscript('');
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
 
-      // Determine supported MIME type
+      // Determine cross-platform supported MIME type (Safari uses audio/mp4, Android/Chrome uses audio/webm)
       let mimeType = 'audio/webm';
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        mimeType = 'audio/webm;codecs=opus';
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        mimeType = 'audio/mp4';
-      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-        mimeType = 'audio/ogg';
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
       }
 
       setAudioMimeType(mimeType);
 
-      const mediaRecorder = new MediaRecorder(stream);
+      let mediaRecorder: MediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+      } catch {
+        mediaRecorder = new MediaRecorder(stream);
+      }
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -214,7 +239,7 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
         // Convert blob to base64 for API transmission
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64 = reader.result as string;
+          const base64 = (reader.result as string) || '';
           setAudioBase64(base64);
         };
         reader.readAsDataURL(blob);
@@ -243,13 +268,27 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
         }
       }
     } catch (err: any) {
-      console.error('Mic access error:', err);
+      console.warn('Direct MediaRecorder stream unavailable, falling back to speech recognition:', err);
+      // Fallback: start speech recognition even if raw stream was restricted
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.lang = isNe ? 'ne-NP' : 'en-US';
+          recognitionRef.current.start();
+          isRecordingRef.current = true;
+          setIsRecording(true);
+          setRecordDuration(0);
+          timerIntervalRef.current = setInterval(() => {
+            setRecordDuration((prev) => prev + 1);
+          }, 1000);
+          return;
+        } catch {}
+      }
       setIsRecording(false);
       isRecordingRef.current = false;
       setErrorMsg(
         isNe
-          ? 'माइक्रोफोन खोल्न सकिएन। कृपया माइक अनुमति दिनुहोस्।'
-          : 'Could not access microphone. Please allow microphone permissions.'
+          ? 'माइक्रोफोन खोल्न सकिएन। कृपया माइक अनुमति दिनुहोस् वा अडियो फाइल अपलोड गर्नुहोस्।'
+          : 'Could not access microphone. Please grant mic permission or upload an audio file.'
       );
     }
   };
@@ -310,10 +349,11 @@ export const VoiceChecker: React.FC<VoiceCheckerProps> = ({
 
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result as string;
+      const dataUrl = (reader.result as string) || '';
       setAudioBase64(dataUrl);
     };
     reader.readAsDataURL(file);
+    if (e.target) e.target.value = '';
   };
 
   const handleSelectSample = (sample: typeof sampleVoiceQueries[0]) => {

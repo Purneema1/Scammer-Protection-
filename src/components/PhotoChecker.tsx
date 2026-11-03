@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Upload,
   Camera,
@@ -90,24 +90,40 @@ export const PhotoChecker: React.FC<PhotoCheckerProps> = ({
   const currentT = t[lang];
   const isNe = lang === 'ne';
 
+  // Support direct Ctrl+V / Cmd+V screenshot pasting anywhere on the page
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile();
+          if (file) {
+            processSelectedFile(file);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       processSelectedFile(file);
     }
+    // Always clear target value so re-selecting the same file or retrying triggers change
+    if (e.target) {
+      e.target.value = '';
+    }
   };
 
   const processSelectedFile = async (file: File) => {
-    if (!isValidImageFile(file)) {
-      setErrorMsg(
-        isNe
-          ? 'कृपया मान्य तस्बिर वा स्क्रिनसट फाइल (JPG, PNG, WebP, HEIC) मात्र छान्नुहोस्।'
-          : 'Please upload a valid image file (PNG, JPG, WebP, HEIC).'
-      );
-      return;
-    }
+    if (!file) return;
     setErrorMsg('');
-    setImageFileName(file.name);
+    setImageFileName(file.name || 'screenshot.jpg');
     setIsOptimizing(true);
 
     try {
@@ -118,9 +134,12 @@ export const PhotoChecker: React.FC<PhotoCheckerProps> = ({
       // Safe fallback to native FileReader if canvas resize fails
       const reader = new FileReader();
       reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
+        const dataUrl = (event.target?.result as string) || '';
         setImageBase64(dataUrl);
         setImageMimeType(file.type || 'image/jpeg');
+      };
+      reader.onerror = () => {
+        setErrorMsg(isNe ? 'फोटो खोल्न सकिएन। कृपया अर्को तस्बिर छान्नुहोस्।' : 'Could not read file. Please select another image.');
       };
       reader.readAsDataURL(file);
     } finally {
@@ -595,14 +614,14 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="image/*"
+          accept="image/*,image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.jfif,.svg"
           className="hidden"
         />
         <input
           type="file"
           ref={cameraInputRef}
           onChange={handleFileChange}
-          accept="image/*"
+          accept="image/*,image/jpeg,image/png,.jpg,.jpeg,.png"
           capture="environment"
           className="hidden"
         />

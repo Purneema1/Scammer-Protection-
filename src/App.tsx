@@ -464,29 +464,13 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Banner CTA Buttons */}
-                <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full lg:w-64">
+                {/* Hero Primary Action Buttons */}
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full lg:w-56">
                   <button
                     onClick={() => navigateTo('tools')}
                     className="flex items-center justify-between px-4 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-cyan-500/30 cursor-pointer active:scale-95 transition-all"
                   >
-                    <span>{isNe ? 'सबै टुलहरू हेर्नुहोस्' : 'Explore All Tools'}</span>
-                    <span>→</span>
-                  </button>
-
-                  <button
-                    onClick={() => navigateTo('chat')}
-                    className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-bold text-xs sm:text-sm shadow-md cursor-pointer active:scale-95 transition-all"
-                  >
-                    <span>{isNe ? 'AI सुरक्षा च्याटबट' : 'Ask AI Chatbot'}</span>
-                    <span>→</span>
-                  </button>
-
-                  <button
-                    onClick={() => navigateTo('message')}
-                    className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm border border-slate-700 shadow-md cursor-pointer active:scale-95 transition-all"
-                  >
-                    <span>{isNe ? 'सन्देश / SMS जाँच्नुहोस्' : 'Check Message / SMS'}</span>
+                    <span>{isNe ? 'सबै टुलहरू खोल्नुहोस्' : 'Explore All Tools'}</span>
                     <span>→</span>
                   </button>
 
@@ -528,28 +512,6 @@ export default function App() {
               </a>
             </div>
 
-            {/* 4. DEDICATED ALL TOOLS ACCESS CARD */}
-            <section className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#101c34] via-[#142340] to-[#101c34] border border-cyan-800/60 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
-                  {isNe ? "साइबर सुरक्षा टुलहरू" : "Scam Protection Tools"}
-                </div>
-                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                  {isNe ? "सबै ठगी जाँच तथा सुरक्षा सेवाहरू" : "All Scam Protection Tools"}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300">
-                  {isNe
-                    ? "SMS, फिसिङ लिंक, सपिङ अफर, फोटो स्क्रिनसट, नेपाली आवाज तथा AI सुरक्षा टुलहरू १-क्लिकमा टुल पृष्ठमा उपलब्ध छन्।"
-                    : "Access SMS, phishing links, shopping, photo OCR, voice & AI cybersecurity tools in the dedicated tools portal."}
-                </p>
-              </div>
-              <button
-                onClick={() => navigateTo("tools")}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-sm transition-all cursor-pointer active:scale-95 shadow-lg shadow-cyan-500/25 shrink-0 text-center"
-              >
-                {isNe ? "सबै टुलहरू खोल्नुहोस् →" : "Open All Tools →"}
-              </button>
-            </section>
 
             {/* 5. CYBER SECURITY AWARENESS VIDEO CENTER ON APP HOME */}
             <section className="space-y-4">
@@ -605,92 +567,27 @@ export default function App() {
         {/* ======================================================== */}
         {currentPage !== 'home' && currentPage !== 'admin' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Top Back-To-Home Bar & Breadcrumb Navigation */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0f172a]/95 border border-slate-800/90 shadow-xl flex flex-wrap items-center justify-between gap-3 sticky top-[65px] z-30 backdrop-blur-md">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button
+            {/* Clean Top Navigation Bar: Back-To-Home & Breadcrumb */}
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-[#0f172a]/95 border border-slate-800/90 shadow-lg flex items-center justify-between gap-3 sticky top-[65px] z-30 backdrop-blur-md">
+              <button
+                onClick={() => navigateTo('home')}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-600/50 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+                title={isNe ? 'गृहपृष्ठमा फर्कनुहोस्' : 'Return to Home'}
+              >
+                <span>{isNe ? '← गृहपृष्ठ (Home)' : '← Back to Home'}</span>
+              </button>
+
+              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                <span
                   onClick={() => navigateTo('home')}
-                  className="px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-600/50 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
-                  title={isNe ? 'गृहपृष्ठमा फर्कनुहोस्' : 'Return to Home'}
+                  className="hover:text-cyan-300 cursor-pointer hidden sm:inline"
                 >
-                  <span>{isNe ? '← गृहपृष्ठ (Home)' : '← Back to Home'}</span>
-                </button>
-
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400">
-                  <span
-                    onClick={() => navigateTo('home')}
-                    className="hover:text-cyan-300 cursor-pointer"
-                  >
-                    {isNe ? 'गृहपृष्ठ' : 'Home'}
-                  </span>
-                  <span className="text-slate-600">/</span>
-                  <span className="text-white font-semibold">
-                    {isNe ? currentTool.titleNe.split('(')[0] : currentTool.titleEn}
-                  </span>
-                </div>
-              </div>
-
-              {/* Quick Jump to Other Tools */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                <span className="text-[11px] text-slate-400 hidden md:inline">
-                  {isNe ? 'अन्य सेवाहरू:' : 'Other Tools:'}
+                  {isNe ? 'गृहपृष्ठ' : 'Home'}
                 </span>
-                {currentPage !== 'message' && (
-                  <button
-                    onClick={() => navigateTo('message')}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'सन्देश' : 'Message'}
-                  </button>
-                )}
-                {currentPage !== 'link' && (
-                  <button
-                    onClick={() => navigateTo('link')}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'लिंक' : 'Link'}
-                  </button>
-                )}
-                {currentPage !== 'shopping' && (
-                  <button
-                    onClick={() => navigateTo('shopping')}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'किनमेल' : 'Shopping'}
-                  </button>
-                )}
-                {currentPage !== 'photo' && (
-                  <button
-                    onClick={() => navigateTo('photo')}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'फोटो' : 'Photo'}
-                  </button>
-                )}
-                {currentPage !== 'voice' && (
-                  <button
-                    onClick={() => navigateTo('voice')}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'आवाज' : 'Voice'}
-                  </button>
-                )}
-                {currentPage !== 'chat' && (
-                  <button
-                    onClick={() => navigateTo('chat')}
-                    className="px-2.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/40 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'AI च्याट' : 'AI Chat'}
-                  </button>
-                )}
-                {currentPage !== 'rescue' && (
-                  <button
-                    onClick={() => navigateTo('rescue')}
-                    className="px-2.5 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/40 text-xs font-medium cursor-pointer transition-colors"
-                  >
-                    {isNe ? 'उद्धार' : 'Rescue'}
-                  </button>
-                )}
+                <span className="text-slate-600 hidden sm:inline">/</span>
+                <span className="text-white font-semibold">
+                  {isNe ? currentTool.titleNe.split('(')[0].trim() : currentTool.titleEn}
+                </span>
               </div>
             </div>
 
@@ -719,13 +616,6 @@ export default function App() {
                       {isNe ? currentTool.descNe : currentTool.descEn}
                     </p>
                   </div>
-
-                  <button
-                    onClick={() => navigateTo('home')}
-                    className="hidden md:flex items-center text-xs text-slate-300 hover:text-cyan-300 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700/60 transition-colors shrink-0 cursor-pointer font-bold"
-                  >
-                    <span>{isNe ? 'गृहपृष्ठ' : 'Home'}</span>
-                  </button>
                 </div>
               </div>
             )}
