@@ -1804,7 +1804,8 @@ async function setupServer() {
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
-    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
+    // In AI Studio preview environment, HMR is disabled to avoid WebSocket closed errors in proxy
+    const isHmrDisabled = process.env.DISABLE_HMR !== 'false';
     const vite = await createViteServer({
       server: {
         middlewareMode: true,

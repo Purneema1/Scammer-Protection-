@@ -452,16 +452,16 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
 
           {/* Visual Clues Badges */}
           {result.visualClues && result.visualClues.length > 0 && (
-            <div className="mt-5 p-4 rounded-2xl bg-cyan-950/20 border border-cyan-800/40">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2.5 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
+            <div className="mt-5 p-4 rounded-2xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800/40">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-400 mb-2.5 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-700 dark:text-cyan-400" />
                 <span>{currentT.photoVisualCluesTitle}</span>
               </h5>
               <div className="flex flex-wrap gap-2">
                 {result.visualClues.map((clue, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium bg-cyan-950/60 text-cyan-200 border border-cyan-700/50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-cyan-100 dark:bg-cyan-950/60 text-cyan-950 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-700/50 shadow-xs"
                   >
                     <span>🔍</span>
                     <span>{clue}</span>
@@ -473,30 +473,30 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
 
           {/* Warning Signs and Action Steps */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-800/40">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-rose-400 mb-3 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/40">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-400 mb-3 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-rose-700 dark:text-rose-400" />
                 <span>{currentT.warningSignsFound}</span>
               </h5>
               <ul className="space-y-2">
                 {result.warningSigns.map((sign, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-xs text-rose-200">
-                    <span className="text-rose-400 mt-0.5">•</span>
+                  <li key={idx} className="flex items-start gap-2 text-xs text-rose-950 dark:text-rose-200 font-medium">
+                    <span className="text-rose-600 dark:text-rose-400 mt-0.5">•</span>
                     <span>{sign}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-800/40">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-1.5">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-3 flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 <span>{currentT.recommendedSteps}</span>
               </h5>
               <ul className="space-y-2">
                 {result.actionSteps.map((step, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-xs text-emerald-200">
-                    <span className="text-emerald-400 font-bold">{idx + 1}.</span>
+                  <li key={idx} className="flex items-start gap-2 text-xs text-emerald-950 dark:text-emerald-200 font-medium">
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">{idx + 1}.</span>
                     <span>{step}</span>
                   </li>
                 ))}
@@ -572,14 +572,14 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
     <div className="space-y-6">
       {/* Title & Introduction */}
       <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-950/60 border border-cyan-800/40 text-cyan-300">
-          <Camera className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{isNe ? 'मल्टिमोडल एआई सुरक्षा' : 'Multimodal Vision Defense'}</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-100 dark:bg-cyan-950/80 border border-cyan-300 dark:border-cyan-800/60 text-cyan-950 dark:text-cyan-300 shadow-sm">
+          <Camera className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-400" />
+          <span className="text-cyan-950 dark:text-cyan-200 font-bold">{isNe ? 'मल्टिमोडल एआई सुरक्षा' : 'Multimodal Vision Defense'}</span>
         </div>
-        <h3 className="text-xl sm:text-2xl font-black text-white">
+        <h3 className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white">
           {currentT.photoTitle}
         </h3>
-        <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-3xl leading-relaxed font-medium">
           {currentT.photoSubtitle}
         </p>
       </div>

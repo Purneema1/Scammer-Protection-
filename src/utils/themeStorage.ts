@@ -130,7 +130,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#0284c7',
       accent: '#0ea5e9',
-      text: '#090d16',
+      text: '#000000',
       border: '#e2e8f0',
     },
     cssVars: {
@@ -140,9 +140,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(255, 255, 255, 0.98)',
       '--app-border': '#e2e8f0',
       '--app-border-highlight': 'rgba(2, 132, 199, 0.5)',
-      '--app-text-main': '#090d16', // Deep Obsidian Dark
-      '--app-text-muted': '#334155', // Rich Dark Slate
-      '--app-text-subtle': '#64748b',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#0284c7',
       '--app-accent-hover': '#0369a1',
       '--app-shadow': '0 4px 20px -2px rgba(15, 23, 42, 0.08)',
@@ -154,8 +154,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'ujalo-emerald',
     nameNe: 'उज्यालो पन्ना (इम्पेरियल मिन्ट)',
     nameEn: 'Imperial Emerald Mint',
-    taglineNe: 'ताजा मिन्ट क्यानभास, गहिरो गाढा हरियो अक्षर र भरपर्दो पन्ना नागरिक सुरक्षा',
-    taglineEn: 'Fresh daylight mint canvas with deep forest jade letters and vivid emerald accents',
+    taglineNe: 'ताजा मिन्ट क्यानभास, प्रष्ट गाढा कालो अक्षर र भरपर्दो पन्ना नागरिक सुरक्षा',
+    taglineEn: 'Fresh daylight mint canvas with deep black letters and vivid emerald accents',
     mode: 'light',
     badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
     previewColors: {
@@ -163,7 +163,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#059669',
       accent: '#10b981',
-      text: '#022c22',
+      text: '#000000',
       border: '#bbf7d0',
     },
     cssVars: {
@@ -173,9 +173,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(240, 253, 244, 0.98)',
       '--app-border': '#bbf7d0',
       '--app-border-highlight': 'rgba(5, 150, 105, 0.5)',
-      '--app-text-main': '#022c22', // Deep Forest Jade Dark
-      '--app-text-muted': '#134e4a', // Dark Pine Slate
-      '--app-text-subtle': '#0f766e',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#059669',
       '--app-accent-hover': '#047857',
       '--app-shadow': '0 4px 20px -2px rgba(2, 44, 34, 0.08)',
@@ -187,8 +187,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'ujalo-amber',
     nameNe: 'सुनौलो बिहानी (च्याम्पेन गोल्ड)',
     nameEn: 'Royal Champagne & Gold',
-    taglineNe: 'न्यानो च्याम्पेन क्यानभास, गहिरो कफी-कांस्य अक्षर र शाही २४ क्यारेट सुनौलो चमक',
-    taglineEn: 'Warm champagne alabaster with deep espresso bronze text and 24K gold cyber shield',
+    taglineNe: 'न्यानो च्याम्पेन क्यानभास, प्रष्ट गाढा कालो अक्षर र शाही २४ क्यारेट सुनौलो चमक',
+    taglineEn: 'Warm champagne alabaster with deep black text and 24K gold cyber shield',
     mode: 'light',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
     previewColors: {
@@ -196,7 +196,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#d97706',
       accent: '#f59e0b',
-      text: '#261502',
+      text: '#000000',
       border: '#fde68a',
     },
     cssVars: {
@@ -206,9 +206,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(255, 251, 235, 0.98)',
       '--app-border': '#fde68a',
       '--app-border-highlight': 'rgba(217, 119, 6, 0.5)',
-      '--app-text-main': '#261502', // Deep Bronze Espresso Dark
-      '--app-text-muted': '#78350f', // Dark Amber Wood
-      '--app-text-subtle': '#92400e',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#d97706',
       '--app-accent-hover': '#b45309',
       '--app-shadow': '0 4px 20px -2px rgba(38, 21, 2, 0.08)',
@@ -220,8 +220,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'ujalo-sapphire',
     nameNe: 'नीलम उज्यालो (इम्पेरियल कोबाल्ट)',
     nameEn: 'Sapphire Modern Daylight',
-    taglineNe: 'शाही नीलो र स्वच्छ उज्यालो क्यानभास, गहिरो मध्यरातको निलो अक्षर र आधुनिक कोबाल्ट',
-    taglineEn: 'Royal sapphire and ice blue clean interface with deep midnight navy typography',
+    taglineNe: 'शाही नीलो र स्वच्छ उज्यालो क्यानभास, प्रष्ट गाढा कालो अक्षर र आधुनिक कोबाल्ट',
+    taglineEn: 'Royal sapphire and ice blue clean interface with deep black typography',
     mode: 'light',
     badgeColor: 'bg-blue-100 text-blue-900 border-blue-300',
     previewColors: {
@@ -229,7 +229,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#2563eb',
       accent: '#3b82f6',
-      text: '#081c3b',
+      text: '#000000',
       border: '#bae6fd',
     },
     cssVars: {
@@ -239,9 +239,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(240, 249, 255, 0.98)',
       '--app-border': '#bae6fd',
       '--app-border-highlight': 'rgba(37, 99, 235, 0.5)',
-      '--app-text-main': '#081c3b', // Deep Midnight Cobalt Dark
-      '--app-text-muted': '#1e3a8a', // Dark Navy
-      '--app-text-subtle': '#1d4ed8',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#2563eb',
       '--app-accent-hover': '#1d4ed8',
       '--app-shadow': '0 4px 20px -2px rgba(8, 28, 59, 0.08)',
@@ -253,8 +253,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'ujalo-rose',
     nameNe: 'गुलाबी प्रभात (रोज क्वार्ट्ज)',
     nameEn: 'Rose Quartz & Coral Elegance',
-    taglineNe: 'आधुनिक रोज क्वार्ट्ज क्यानभास, गहिरो बर्गेन्डी अक्षर र कोरल सुरक्षा',
-    taglineEn: 'Refined rose quartz daylight canvas with deep velvet burgundy text and coral accents',
+    taglineNe: 'आधुनिक रोज क्वार्ट्ज क्यानभास, प्रष्ट गाढा कालो अक्षर र कोरल सुरक्षा',
+    taglineEn: 'Refined rose quartz daylight canvas with deep black text and coral accents',
     mode: 'light',
     badgeColor: 'bg-rose-100 text-rose-900 border-rose-300',
     previewColors: {
@@ -262,7 +262,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#e11d48',
       accent: '#fb7185',
-      text: '#4c0519',
+      text: '#000000',
       border: '#fecdd3',
     },
     cssVars: {
@@ -272,9 +272,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(255, 241, 242, 0.98)',
       '--app-border': '#fecdd3',
       '--app-border-highlight': 'rgba(225, 29, 72, 0.5)',
-      '--app-text-main': '#4c0519', // Deep Burgundy Velvet Dark
-      '--app-text-muted': '#881337', // Dark Currant
-      '--app-text-subtle': '#9f1239',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#e11d48',
       '--app-accent-hover': '#be123c',
       '--app-shadow': '0 4px 20px -2px rgba(76, 5, 25, 0.08)',
@@ -286,8 +286,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'ujalo-arctic',
     nameNe: 'आर्कटिक फ्रस्ट (आइस ग्लास)',
     nameEn: 'Arctic Cyan Ice Glass',
-    taglineNe: 'अत्यन्त सफा आइस-ग्लास क्यानभास, गहिरो पाइन-टील अक्षर र चम्किलो सायन चमक',
-    taglineEn: 'Ultra-clean ice-frost glass with deep oceanic pine typography and electric cyan glow',
+    taglineNe: 'अत्यन्त सफा आइस-ग्लास क्यानभास, प्रष्ट गाढा कालो अक्षर र चम्किलो सायन चमक',
+    taglineEn: 'Ultra-clean ice-frost glass with deep black typography and electric cyan glow',
     mode: 'light',
     badgeColor: 'bg-cyan-100 text-cyan-900 border-cyan-300',
     previewColors: {
@@ -295,7 +295,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#0891b2',
       accent: '#06b6d4',
-      text: '#042f2e',
+      text: '#000000',
       border: '#99f6e4',
     },
     cssVars: {
@@ -305,9 +305,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(240, 253, 250, 0.98)',
       '--app-border': '#99f6e4',
       '--app-border-highlight': 'rgba(8, 145, 178, 0.5)',
-      '--app-text-main': '#042f2e', // Deep Oceanic Pine Dark
-      '--app-text-muted': '#115e59', // Dark Pine Slate
-      '--app-text-subtle': '#0f766e',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#0891b2',
       '--app-accent-hover': '#0e7490',
       '--app-shadow': '0 4px 20px -2px rgba(4, 47, 46, 0.08)',
@@ -319,7 +319,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'ujalo-slate',
     nameNe: 'आधुनिक टाइटेनियम (नर्डिक स्लेट)',
     nameEn: 'Nordic Titanium Slate',
-    taglineNe: 'नर्डिक शैलीको हल्का टाइटेनियम स्लेट, शुद्ध जेट कालो अक्षर र आधुनिक कर्पोरेट लुक',
+    taglineNe: 'नर्डिक शैलीको हल्का टाइटेनियम स्लेट, शुद्ध जेट कालो अक्षर र आधुनिक लुक',
     taglineEn: 'Nordic minimalist titanium gray with pure jet-black typography and corporate slate',
     mode: 'light',
     badgeColor: 'bg-slate-200 text-slate-900 border-slate-400',
@@ -328,7 +328,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       card: '#ffffff',
       primary: '#334155',
       accent: '#0284c7',
-      text: '#090d16',
+      text: '#000000',
       border: '#cbd5e1',
     },
     cssVars: {
@@ -338,9 +338,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-header-bg': 'rgba(241, 245, 249, 0.98)',
       '--app-border': '#cbd5e1',
       '--app-border-highlight': 'rgba(51, 65, 85, 0.5)',
-      '--app-text-main': '#090d16', // Pitch Jet Black Dark
-      '--app-text-muted': '#334155', // Slate Dark
-      '--app-text-subtle': '#64748b',
+      '--app-text-main': '#000000', // Pure Jet Black
+      '--app-text-muted': '#000000', // Pure Jet Black
+      '--app-text-subtle': '#111827',
       '--app-accent-primary': '#334155',
       '--app-accent-hover': '#1e293b',
       '--app-shadow': '0 4px 20px -2px rgba(9, 13, 22, 0.08)',
@@ -372,8 +372,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-border': '#1e293b',
       '--app-border-highlight': 'rgba(6, 182, 212, 0.5)',
       '--app-text-main': '#ffffff', // Pure Crystal White
-      '--app-text-muted': '#cbd5e1', // Bright White Slate
-      '--app-text-subtle': '#94a3b8',
+      '--app-text-muted': '#ffffff', // Pure Crystal White
+      '--app-text-subtle': '#ffffff',
       '--app-accent-primary': '#06b6d4',
       '--app-accent-hover': '#22d3ee',
       '--app-shadow': '0 8px 32px rgba(0, 0, 0, 0.7)',
@@ -405,8 +405,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-border': '#1e305e',
       '--app-border-highlight': 'rgba(59, 130, 246, 0.5)',
       '--app-text-main': '#ffffff', // Pure Crystal White
-      '--app-text-muted': '#cbd5e1', // Bright White Slate
-      '--app-text-subtle': '#94a3b8',
+      '--app-text-muted': '#ffffff', // Pure Crystal White
+      '--app-text-subtle': '#ffffff',
       '--app-accent-primary': '#3b82f6',
       '--app-accent-hover': '#60a5fa',
       '--app-shadow': '0 8px 32px rgba(0, 0, 0, 0.7)',
@@ -438,8 +438,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--app-border': '#0d3a2b',
       '--app-border-highlight': 'rgba(16, 185, 129, 0.5)',
       '--app-text-main': '#ffffff', // Pure Crystal White
-      '--app-text-muted': '#e2e8f0', // Bright White Slate
-      '--app-text-subtle': '#a7f3d0',
+      '--app-text-muted': '#ffffff', // Pure Crystal White
+      '--app-text-subtle': '#ffffff',
       '--app-accent-primary': '#10b981',
       '--app-accent-hover': '#34d399',
       '--app-shadow': '0 8px 32px rgba(0, 0, 0, 0.7)',
@@ -597,6 +597,10 @@ export function applyThemeToDOM(settings?: AppThemeSettings): void {
   // Adjust variables based on Background Variant
   const bgVariant = current.backgroundVariant || 'default';
   if (theme.mode === 'light') {
+    finalCssVars['--app-text-main'] = '#000000';
+    finalCssVars['--app-text-muted'] = '#000000';
+    finalCssVars['--app-text-subtle'] = '#0a0a0a';
+
     if (bgVariant === 'pure-clean') {
       finalCssVars['--app-bg'] = '#ffffff';
       finalCssVars['--app-card-bg'] = '#f8fafc';
@@ -609,11 +613,15 @@ export function applyThemeToDOM(settings?: AppThemeSettings): void {
       finalCssVars['--app-card-subtle'] = '#f8fafc';
       finalCssVars['--app-border'] = '#475569';
       finalCssVars['--app-text-main'] = '#000000';
-      finalCssVars['--app-text-muted'] = '#1e293b';
+      finalCssVars['--app-text-muted'] = '#000000';
       finalCssVars['--app-header-bg'] = '#ffffff';
     }
   } else {
-    // Dark mode variants
+    // Dark mode variants: ALL text is pure crystal white
+    finalCssVars['--app-text-main'] = '#ffffff';
+    finalCssVars['--app-text-muted'] = '#ffffff';
+    finalCssVars['--app-text-subtle'] = '#ffffff';
+
     if (bgVariant === 'pure-clean') {
       finalCssVars['--app-bg'] = '#040711';
       finalCssVars['--app-card-bg'] = '#0a0f1d';
@@ -633,7 +641,7 @@ export function applyThemeToDOM(settings?: AppThemeSettings): void {
       finalCssVars['--app-header-bg'] = 'rgba(0, 0, 0, 0.98)';
       finalCssVars['--app-border'] = '#475569';
       finalCssVars['--app-text-main'] = '#ffffff';
-      finalCssVars['--app-text-muted'] = '#e2e8f0';
+      finalCssVars['--app-text-muted'] = '#ffffff';
     }
   }
 

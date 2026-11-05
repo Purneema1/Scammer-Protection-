@@ -283,16 +283,16 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
       </div>
 
       {/* Recovery Scam Warning Box - Prominent */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-950/80 via-red-950/60 to-rose-950/80 border-2 border-rose-600/70 shadow-2xl animate-pulse-slow">
+      <div className="p-4 sm:p-5 rounded-3xl bg-rose-100 dark:bg-rose-950/80 border-2 border-rose-500 shadow-xl">
         <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-2xl bg-rose-600/30 border border-rose-500/50 text-rose-300 shrink-0">
-            <AlertOctagon className="w-6 h-6 sm:w-7 sm:h-7" />
+          <div className="p-2.5 rounded-2xl bg-rose-200 dark:bg-rose-900/60 border border-rose-400 dark:border-rose-700 shrink-0">
+            <AlertOctagon className="w-6 h-6 sm:w-7 sm:h-7 text-rose-700 dark:text-rose-300" />
           </div>
           <div>
-            <h3 className="text-sm sm:text-base font-extrabold text-rose-200 uppercase tracking-wide">
+            <h3 className="text-sm sm:text-base font-black text-rose-950 dark:text-rose-100 uppercase tracking-wide">
               {currentT.recoveryScamAlertTitle}
             </h3>
-            <p className="text-xs sm:text-sm text-rose-100/90 mt-1 leading-relaxed">
+            <p className="text-xs sm:text-sm text-rose-950 dark:text-rose-100 mt-1 leading-relaxed font-bold">
               {currentT.recoveryScamAlertDesc}
             </p>
           </div>
@@ -324,21 +324,21 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
                 onClick={() => setActiveScenario(key)}
                 className={`p-3 rounded-2xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
                   isSelected
-                    ? 'bg-rose-500/15 border-rose-500/60 text-white shadow-lg'
-                    : 'bg-[#0b1220] border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    ? 'bg-rose-500/20 border-rose-500 text-rose-950 dark:text-rose-100 font-extrabold shadow-md'
+                    : 'bg-white dark:bg-[#0b1220] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <Icon
                     className={`w-5 h-5 ${
-                      isSelected ? 'text-rose-400' : 'text-slate-500'
+                      isSelected ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
                     }`}
                   />
                   {isSelected && (
-                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                   )}
                 </div>
-                <span className="text-xs sm:text-sm font-bold line-clamp-1">
+                <span className={`text-xs sm:text-sm font-bold line-clamp-1 ${isSelected ? 'text-rose-950 dark:text-rose-100' : 'text-slate-800 dark:text-slate-200'}`}>
                   {sc.title}
                 </span>
               </button>
@@ -418,10 +418,10 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
         <div className="pt-2">
           <button
             onClick={onOpenComplaint}
-            className="w-full py-3 px-4 rounded-2xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-200 border border-cyan-500/40 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+            className="w-full py-3.5 px-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-400 text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-[0.98]"
           >
-            <FileText className="w-4 h-4 text-cyan-400" />
-            <span>
+            <FileText className="w-4 h-4 text-slate-950" />
+            <span className="text-slate-950 font-black">
               {isNe
                 ? 'नेपाल प्रहरी साइबर ब्युरोका लागि औपचारिक उजुरी पत्र (मस्यौदा) तयार गर्नुहोस्'
                 : 'Draft an Official Cyber Bureau Police Complaint Petition Now'}
@@ -441,10 +441,10 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
           {/* Cyber Bureau Card */}
           <div className="p-4 rounded-2xl bg-[#0b1220] border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-emerald-300">
+              <span className="font-bold text-emerald-400 dark:text-emerald-300">
                 {isNe ? 'नेपाल प्रहरी साइबर ब्युरो' : 'Nepal Police Cyber Bureau'}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-400 font-mono">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900 border border-emerald-500 text-white !text-white font-mono font-bold shadow-sm">
                 24/7 Official
               </span>
             </div>
@@ -456,17 +456,17 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <a
                 href="tel:014211304"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-mono font-bold"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white !text-white border border-emerald-400 font-mono font-extrabold shadow-sm"
               >
-                <PhoneCall className="w-3.5 h-3.5" />
-                {isNe ? '०१-४२११३०४' : '01-4211304'}
+                <PhoneCall className="w-3.5 h-3.5 text-white" />
+                <span className="text-white !text-white">{isNe ? '०१-४२११३०४' : '01-4211304'}</span>
               </a>
               <a
                 href="mailto:cyberbureau@nepalpolice.gov.np"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold"
               >
-                <Mail className="w-3.5 h-3.5" />
-                {isNe ? 'इमेल गर्नुहोस्' : 'Email Bureau'}
+                <Mail className="w-3.5 h-3.5 text-white" />
+                <span className="text-white">{isNe ? 'इमेल गर्नुहोस्' : 'Email Bureau'}</span>
               </a>
             </div>
           </div>
@@ -474,10 +474,10 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
           {/* eSewa / Khalti Fraud Desk */}
           <div className="p-4 rounded-2xl bg-[#0b1220] border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-cyan-300">
+              <span className="font-bold text-cyan-400 dark:text-cyan-300">
                 {isNe ? 'डिजिटल वालेट फ्रड डेस्क' : 'Digital Wallets Fraud Desk'}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-400 font-mono">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-900 border border-cyan-500 text-white !text-white font-mono font-bold shadow-sm">
                 eSewa / Khalti
               </span>
             </div>

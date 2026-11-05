@@ -46,7 +46,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onChangeTab, 
   ];
 
   return (
-    <nav className="bg-[#0e172a] border-b border-slate-800 px-4 py-2 sticky top-[57px] z-30 shadow-md">
+    <nav className="bg-white dark:bg-[#0e172a] border-b border-slate-200 dark:border-slate-800 px-4 py-2 sticky top-[57px] z-30 shadow-md">
       <div className="max-w-6xl mx-auto flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -57,17 +57,17 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onChangeTab, 
             <button
               key={item.id}
               onClick={() => onChangeTab(item.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${
                 isActive
                   ? isRescue
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-sm'
-                    : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                    ? 'bg-rose-600 text-white border border-rose-500 shadow-sm'
+                    : 'bg-cyan-500 text-slate-950 border border-cyan-400 shadow-sm font-black'
                   : isRescue
-                  ? 'text-rose-400 hover:text-rose-300 hover:bg-rose-950/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                  : 'text-slate-800 dark:text-slate-300 hover:text-black dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? (isRescue ? 'text-rose-400' : 'text-cyan-400') : ''}`} />
+              <Icon className={`w-4 h-4 ${isActive ? (isRescue ? 'text-white' : 'text-slate-950') : (isRescue ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400')}`} />
               <span>{item.label}</span>
             </button>
           );

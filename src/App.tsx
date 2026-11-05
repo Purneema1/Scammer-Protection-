@@ -435,7 +435,13 @@ export default function App() {
 
             {/* 2. HERO BANNER WITH HIGH-DEFINITION NEPAL CYBER DEFENSE PICTURE */}
             {/* 2. HERO BANNER WITH CLEAR HIGH-DEFINITION NEPAL CYBER DEFENSE PICTURE */}
-            <section className="rounded-3xl border border-cyan-800/40 shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#101b33] to-[#0c1322]">
+            <section
+              className="rounded-3xl border shadow-2xl relative overflow-hidden"
+              style={{
+                backgroundColor: 'var(--app-card-bg)',
+                borderColor: 'var(--app-border)',
+              }}
+            >
               {/* Clear Picture Banner without icon overlays */}
               <div className="relative h-48 sm:h-64 md:h-80 w-full overflow-hidden bg-slate-900">
                 <img
@@ -443,12 +449,11 @@ export default function App() {
                   alt={isNe ? 'नेपाल साइबर सुरक्षा रक्षा कवच' : 'Nepal Cyber Defense AI Shield'}
                   className="w-full h-full object-cover object-center filter brightness-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0c1322] via-transparent to-black/20" />
               </div>
 
-              <div className="p-4 sm:p-7 -mt-6 sm:-mt-10 relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="p-4 sm:p-7 mt-0 relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="max-w-xl space-y-2.5">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight leading-tight" style={{ color: 'var(--app-text-main)' }}>
                     {isNe ? (
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
                         {contentSettings.heroHeadlineNe}
@@ -459,7 +464,7 @@ export default function App() {
                       </span>
                     )}
                   </h1>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
                     {isNe ? contentSettings.heroSubheadlineNe : contentSettings.heroSubheadlineEn}
                   </p>
                 </div>
@@ -476,10 +481,10 @@ export default function App() {
 
                   <button
                     onClick={() => navigateTo('rescue')}
-                    className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-rose-950/70 hover:bg-rose-900/70 text-rose-300 font-semibold text-xs sm:text-sm border border-rose-800/60 shadow-md cursor-pointer active:scale-95 transition-all"
+                    className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm border border-rose-500 shadow-md cursor-pointer active:scale-95 transition-all"
                   >
-                    <span>{isNe ? 'ठगीमा परेको छु (SOS)' : "I'm Scammed (Rescue SOS)"}</span>
-                    <span>→</span>
+                    <span className="text-white !text-white font-bold">{isNe ? 'ठगीमा परेको छु (SOS)' : "I'm Scammed (Rescue SOS)"}</span>
+                    <span className="text-white !text-white font-bold">→</span>
                   </button>
                 </div>
               </div>
@@ -493,12 +498,18 @@ export default function App() {
             />
 
             {/* 3. EMERGENCY POLICE HELPLINE NOTIFICATION STRIP */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/60 via-[#0e1b2f] to-rose-950/40 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div
+              className="p-3.5 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
+              style={{
+                backgroundColor: 'var(--app-card-subtle)',
+                borderColor: 'var(--app-border)',
+              }}
+            >
               <div>
-                <span className="font-bold text-white block">
+                <span className="font-bold block" style={{ color: 'var(--app-text-main)' }}>
                   {isNe ? contentSettings.emergencyAlertNe : contentSettings.emergencyAlertEn}
                 </span>
-                <span className="text-slate-400 text-[11px]">
+                <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
                   {isNe
                     ? `फोन: ${contentSettings.helplinePhone} | आपतकालीन: १०० | इमेल: ${contentSettings.helplineEmail}`
                     : `Hotline: ${contentSettings.helplinePhone} | Emergency: 100 | ${contentSettings.helplineEmail}`}
@@ -506,12 +517,11 @@ export default function App() {
               </div>
               <a
                 href={`tel:${contentSettings.helplinePhone.replace(/[^0-9]/g, '') || '014211304'}`}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold shrink-0 transition-colors"
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white !text-white border border-emerald-500 font-bold shrink-0 transition-colors shadow-sm"
               >
-                {isNe ? `फोन गर्नुहोस्: ${contentSettings.helplinePhone}` : `Call: ${contentSettings.helplinePhone}`}
+                <span className="text-white !text-white font-bold">{isNe ? `फोन गर्नुहोस्: ${contentSettings.helplinePhone}` : `Call: ${contentSettings.helplinePhone}`}</span>
               </a>
             </div>
-
 
             {/* 5. CYBER SECURITY AWARENESS VIDEO CENTER ON APP HOME */}
             <section className="space-y-4">
@@ -520,29 +530,47 @@ export default function App() {
 
             {/* 5. TRUST PILLARS */}
             <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
-              <div className="p-4 rounded-2xl bg-[#121c33]/70 border border-slate-800">
-                <span className="font-bold text-slate-200 block">
+              <div
+                className="p-4 rounded-2xl border"
+                style={{
+                  backgroundColor: 'var(--app-card-subtle)',
+                  borderColor: 'var(--app-border)',
+                }}
+              >
+                <span className="font-bold block" style={{ color: 'var(--app-text-main)' }}>
                   {isNe ? '१००% निजी र इन-ब्राउजर' : '100% Private & In-Browser'}
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
                   {isNe ? 'कुनै पनि पासवर्ड सुरक्षित हुँदैन' : 'Zero credential retention'}
                 </span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#121c33]/70 border border-slate-800">
-                <span className="font-bold text-slate-200 block">
+              <div
+                className="p-4 rounded-2xl border"
+                style={{
+                  backgroundColor: 'var(--app-card-subtle)',
+                  borderColor: 'var(--app-border)',
+                }}
+              >
+                <span className="font-bold block" style={{ color: 'var(--app-text-main)' }}>
                   {isNe ? 'नेपाल प्रहरी साइबर ब्युरो' : 'Nepal Police Cyber Bureau'}
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
                   {isNe ? 'हटलाइन: ०१-४२११३०४' : 'Official Hotline: 01-4211304'}
                 </span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#121c33]/70 border border-slate-800">
-                <span className="font-bold text-slate-200 block">
+              <div
+                className="p-4 rounded-2xl border"
+                style={{
+                  backgroundColor: 'var(--app-card-subtle)',
+                  borderColor: 'var(--app-border)',
+                }}
+              >
+                <span className="font-bold block" style={{ color: 'var(--app-text-main)' }}>
                   {isNe ? 'नियम + AI विश्लेषण' : 'Heuristics + AI Vision'}
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
                   {isNe ? 'नेपाली सन्दर्भ र स्थानीय ठगी ढाँचा' : 'Tuned for Nepal fraud modalities'}
                 </span>
               </div>
@@ -568,13 +596,19 @@ export default function App() {
         {currentPage !== 'home' && currentPage !== 'admin' && (
           <div className="space-y-6 animate-fadeIn">
             {/* Clean Top Navigation Bar: Back-To-Home & Breadcrumb */}
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-[#0f172a]/95 border border-slate-800/90 shadow-lg flex items-center justify-between gap-3 sticky top-[65px] z-30 backdrop-blur-md">
+            <div
+              className="p-3 sm:p-3.5 rounded-2xl border shadow-lg flex items-center justify-between gap-3 sticky top-[65px] z-30 backdrop-blur-md"
+              style={{
+                backgroundColor: 'var(--app-card-bg)',
+                borderColor: 'var(--app-border)',
+              }}
+            >
               <button
                 onClick={() => navigateTo('home')}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-600/50 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-400 text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-95 shadow-md"
                 title={isNe ? 'गृहपृष्ठमा फर्कनुहोस्' : 'Return to Home'}
               >
-                <span>{isNe ? '← गृहपृष्ठ (Home)' : '← Back to Home'}</span>
+                <span className="text-slate-950 font-black">{isNe ? '← गृहपृष्ठ (Home)' : '← Back to Home'}</span>
               </button>
 
               <div className="flex items-center gap-1.5 text-xs text-slate-400">
@@ -608,7 +642,7 @@ export default function App() {
                       <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                         {isNe ? currentTool.titleNe : currentTool.titleEn}
                       </h1>
-                      <span className="hidden sm:inline-block text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-800/60 shadow-sm">
+                      <span className="hidden sm:inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-900/90 text-white !text-white border border-cyan-500/60 shadow-sm">
                         {isNe ? currentTool.badgeNe : currentTool.badgeEn}
                       </span>
                     </div>
@@ -698,21 +732,21 @@ export default function App() {
             </div>
 
             {/* Bottom Navigation Return Strip */}
-            <div className="p-4 rounded-2xl bg-[#0e1628] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#0e1628] border border-slate-200 dark:border-slate-800 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
                 onClick={() => navigateTo('home')}
-                className="text-xs sm:text-sm font-bold text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors"
+                className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 cursor-pointer transition-colors"
               >
                 <span>{isNe ? '← गृहपृष्ठमा फर्कनुहोस् (Go back to Home)' : '← Return to Main Homepage'}</span>
               </button>
 
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">
+                <span className="text-slate-700 dark:text-slate-400 font-medium">
                   {isNe ? 'कुनै समस्या वा प्रश्न छ?' : 'Need immediate assistance?'}
                 </span>
                 <button
                   onClick={() => handleOpenFeedback(currentTool.titleEn)}
-                  className="text-cyan-400 hover:underline cursor-pointer"
+                  className="text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 hover:underline cursor-pointer font-bold"
                 >
                   {isNe ? 'हामीलाई बताउनुहोस्' : 'Send Feedback'}
                 </button>

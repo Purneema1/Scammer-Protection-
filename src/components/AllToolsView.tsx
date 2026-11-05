@@ -198,20 +198,28 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Header Search and Category Bar */}
-      <div className="p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-[#0f172a] via-[#131f38] to-[#0f172a] border border-slate-800 shadow-xl space-y-4">
+      <div
+        className="p-4 sm:p-6 rounded-3xl border shadow-xl space-y-4"
+        style={{
+          backgroundColor: 'var(--app-card-bg)',
+          borderColor: 'var(--app-border)',
+        }}
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2" style={{ color: 'var(--app-text-main)' }}>
               <span>{isNe ? 'सबै ठगी जाँच तथा सुरक्षा टुलहरू' : 'All Scam Protection Tools'}</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1">
+            <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--app-text-muted)' }}>
               {isNe
                 ? '१-क्लिकमा जुनसुकै टुल खोल्नुहोस् — विस्तृत विश्लेषण गरी तुरुन्त सुरक्षित रहनुहोस्।'
                 : 'Open any tool in a single click for instant fraud detection and expert advice.'}
             </p>
           </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-cyan-950/80 text-cyan-300 border border-cyan-700/50 self-start sm:self-auto shrink-0">
-            {isNe ? `${toNepaliDigits(filteredTools.length)} वटा सेवाहरू उपलब्ध` : `${filteredTools.length} Tools Available`}
+          <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-cyan-100 dark:bg-cyan-900 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-500/60 self-start sm:self-auto shrink-0 shadow-sm">
+            <span className="text-cyan-950 dark:text-white font-black">
+              {isNe ? `${toNepaliDigits(filteredTools.length)} वटा सेवाहरू उपलब्ध` : `${filteredTools.length} Tools Available`}
+            </span>
           </span>
         </div>
 
@@ -244,13 +252,15 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
                 activeCategory === cat.id
-                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
-                  : 'bg-slate-900/80 text-slate-300 hover:text-white border border-slate-800'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20 border border-cyan-400'
+                  : 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-xs'
               }`}
             >
-              {isNe ? cat.labelNe : cat.labelEn}
+              <span className={`font-bold ${activeCategory === cat.id ? 'text-slate-950' : 'text-slate-950 dark:text-white'}`}>
+                {isNe ? cat.labelNe : cat.labelEn}
+              </span>
             </button>
           ))}
         </div>

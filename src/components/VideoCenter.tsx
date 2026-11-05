@@ -95,15 +95,19 @@ export const VideoCenter: React.FC<VideoCenterProps> = ({
   const content = (
     <div className="space-y-6">
       {/* Video Center Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#0c1527] via-[#12203a] to-[#0c1527] border border-cyan-800/40 shadow-xl">
+      <div
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border shadow-xl bg-white dark:bg-[#0b1220] border-slate-200 dark:border-slate-800"
+      >
         <div className="space-y-1.5">
-          <div className="inline-flex items-center px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-700/60 text-[11px] font-bold text-cyan-300">
-            <span>{isNe ? 'साइबर सुरक्षा भिडियो सचेतना केन्द्र' : 'Cyber Security Video Awareness'}</span>
+          <div
+            className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black border bg-cyan-100 dark:bg-cyan-900 border-cyan-300 dark:border-cyan-500 shadow-sm"
+          >
+            <span className="text-cyan-950 dark:text-white font-black">{isNe ? 'साइबर सुरक्षा भिडियो सचेतना केन्द्र' : 'Cyber Security Video Awareness'}</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-950 dark:text-white">
             {isNe ? 'ठगीबाट जोगिने आधिकारिक भिडियो ट्युटोरियल' : 'Official Scam Prevention Video Guides'}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
+          <p className="text-xs sm:text-sm max-w-2xl text-slate-700 dark:text-slate-300">
             {isNe
               ? 'हेरेर सिक्नुहोस्! प्रत्यक्ष अपलोड गरिएका र YouTube का सचेतना भिडियोहरू तिनीहरूको प्राकृतिक साइज (ठाडो र तेर्सो) मा हेर्नुहोस्।'
               : 'Watch uploaded direct video guides and YouTube tutorials in their native uploaded dimensions & aspect ratios.'}
@@ -113,7 +117,12 @@ export const VideoCenter: React.FC<VideoCenterProps> = ({
         {isOpenModal && onCloseModal && (
           <button
             onClick={onCloseModal}
-            className="self-start sm:self-center px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer text-xs font-bold"
+            className="self-start sm:self-center px-3 py-1.5 rounded-xl transition-colors cursor-pointer text-xs font-bold border"
+            style={{
+              backgroundColor: 'var(--app-card-subtle)',
+              borderColor: 'var(--app-border)',
+              color: 'var(--app-text-main)',
+            }}
           >
             ✕ {isNe ? 'बन्द गर्नुहोस्' : 'Close'}
           </button>
@@ -126,13 +135,15 @@ export const VideoCenter: React.FC<VideoCenterProps> = ({
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
               selectedCategory === cat.id
-                ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
-                : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
+                ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20 border border-cyan-400'
+                : 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-xs'
             }`}
           >
-            {isNe ? cat.labelNe : cat.labelEn}
+            <span className={selectedCategory === cat.id ? 'text-slate-950 font-black' : 'text-slate-950 dark:text-white font-bold'}>
+              {isNe ? cat.labelNe : cat.labelEn}
+            </span>
           </button>
         ))}
       </div>
@@ -146,7 +157,11 @@ export const VideoCenter: React.FC<VideoCenterProps> = ({
           return (
             <div
               key={video.id}
-              className="group rounded-2xl bg-[#0f172a] hover:bg-[#131f37] border border-slate-800 hover:border-cyan-500/60 shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-200"
+              className="group rounded-2xl border shadow-lg overflow-hidden flex flex-col justify-between transition-all duration-200"
+              style={{
+                backgroundColor: 'var(--app-card-bg)',
+                borderColor: 'var(--app-border)',
+              }}
             >
               {/* Clear, Bright Video Thumbnail */}
               <div
@@ -169,13 +184,13 @@ export const VideoCenter: React.FC<VideoCenterProps> = ({
                 </div>
 
                 {/* Duration Tag */}
-                <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-bold text-white">
-                  <span>{video.duration}</span>
+                <div className="badge-dark absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/90 backdrop-blur-md text-[10px] font-black text-white !text-white border border-white/20 shadow-md">
+                  <span className="text-white !text-white font-black">{video.duration}</span>
                 </div>
 
                 {/* Aspect Ratio / Upload Format Badge */}
-                <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-300 border border-cyan-500/30">
-                  <span>{isDirect ? (ratioInfo.isVertical ? '📱 9:16 Reel' : '📂 MP4/WebM') : '▶ YouTube'}</span>
+                <div className="badge-dark absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/90 backdrop-blur-md text-[10px] font-black text-white !text-white border border-cyan-400/60 shadow-md">
+                  <span className="text-white !text-white font-black">{isDirect ? (ratioInfo.isVertical ? '📱 9:16 Reel' : '📂 MP4/WebM') : '▶ YouTube'}</span>
                 </div>
               </div>
 

@@ -112,15 +112,20 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
   const COLORS = ['#06b6d4', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e'];
 
   return (
-    <section className="rounded-3xl bg-gradient-to-b from-[#101b33] via-[#0d162a] to-[#0a1122] border border-cyan-900/40 shadow-2xl p-4 sm:p-6 space-y-6 relative overflow-hidden">
+    <section
+      className="rounded-3xl border shadow-2xl p-4 sm:p-6 space-y-6 relative overflow-hidden"
+      style={{
+        backgroundColor: 'var(--app-card-bg)',
+        borderColor: 'var(--app-border)',
+      }}
+    >
       {/* Visual cyber intelligence backdrop image */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-10">
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-5 dark:opacity-10">
         <img
           src={BANNERS.stats}
           alt=""
           className="w-full h-full object-cover filter blur-[2px]"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#101b33]/90 via-[#0d162a]/95 to-[#0a1122]" />
       </div>
 
       {/* Background glow effects */}
@@ -130,8 +135,8 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
       {/* Header with Title and Mode Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/50 text-[11px] font-bold text-cyan-300">
-            <span>{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-900/90 text-white border border-cyan-500/50 text-[11px] font-bold shadow-sm">
+            <span className="text-white !text-white">{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
           </div>
           <h2 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
@@ -185,57 +190,87 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
 
       {/* KPI Highlight Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 relative z-10">
-        <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
+        <div
+          className="p-3.5 rounded-2xl border transition-colors"
+          style={{
+            backgroundColor: 'var(--app-card-subtle)',
+            borderColor: 'var(--app-border)',
+          }}
+        >
+          <div className="flex items-center justify-between text-[11px] mb-1" style={{ color: 'var(--app-text-muted)' }}>
             <span>{isNe ? 'वार्षिक कुल उजुरी' : 'Reported Cases (Year)'}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-white">
+          <div className="text-xl sm:text-2xl font-black" style={{ color: 'var(--app-text-main)' }}>
             {isNe ? '२१,७५०+' : '21,750+'}
           </div>
-          <div className="text-[10px] text-cyan-400 mt-0.5 flex items-center gap-1 font-medium">
+          <div className="text-[10px] text-cyan-500 mt-0.5 flex items-center gap-1 font-medium">
             <span>{isNe ? '↑ ४१% गत वर्षभन्दा वृद्धि' : '↑ 41% vs previous year'}</span>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
+        <div
+          className="p-3.5 rounded-2xl border transition-colors"
+          style={{
+            backgroundColor: 'var(--app-card-subtle)',
+            borderColor: 'var(--app-border)',
+          }}
+        >
+          <div className="flex items-center justify-between text-[11px] mb-1" style={{ color: 'var(--app-text-muted)' }}>
             <span>{isNe ? 'अनुमानित वित्तीय क्षति' : 'Estimated Loss'}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-300">
+          <div className="text-xl sm:text-2xl font-black text-rose-500">
             {isNe ? 'रु. १.३८ अर्ब+' : 'NPR 1.38 Billion+'}
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
+          <div className="text-[10px] mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
             {isNe ? 'डिजिटल भुक्तानी र वालेट' : 'Digital wallets & banking'}
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
+        <div
+          className="p-3.5 rounded-2xl border transition-colors"
+          style={{
+            backgroundColor: 'var(--app-card-subtle)',
+            borderColor: 'var(--app-border)',
+          }}
+        >
+          <div className="flex items-center justify-between text-[11px] mb-1" style={{ color: 'var(--app-text-muted)' }}>
             <span>{isNe ? 'सबैभन्दा जोखिमपूर्ण ठगी' : '#1 Prevalent Scam'}</span>
           </div>
-          <div className="text-base sm:text-lg font-black text-cyan-300 truncate">
+          <div className="text-base sm:text-lg font-black text-cyan-500 truncate">
             {isNe ? 'सोसल सपिङ र अग्रिम भुक्तानी' : 'Shopping & Advance Pay'}
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
+          <div className="text-[10px] mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
             {isNe ? '३२% कुल उजुरी हिस्सा' : '32% of total cyber incidents'}
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0e172a]/90 border border-slate-800/80 hover:border-cyan-500/40 transition-colors">
-          <div className="flex items-center justify-between text-slate-400 text-[11px] mb-1">
+        <div
+          className="p-3.5 rounded-2xl border transition-colors"
+          style={{
+            backgroundColor: 'var(--app-card-subtle)',
+            borderColor: 'var(--app-border)',
+          }}
+        >
+          <div className="flex items-center justify-between text-[11px] mb-1" style={{ color: 'var(--app-text-muted)' }}>
             <span>{isNe ? 'गोल्डेन आवर रिकभरी' : 'Golden Hour Window'}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-300">
+          <div className="text-xl sm:text-2xl font-black text-emerald-500">
             {isNe ? '२ घण्टा भित्र' : 'Within 2 Hours'}
           </div>
-          <div className="text-[10px] text-emerald-400/90 mt-0.5 font-medium">
+          <div className="text-[10px] text-emerald-500 mt-0.5 font-medium">
             {isNe ? 'बैंक/वालेट फ्रिज गर्न' : 'Crucial to freeze accounts'}
           </div>
         </div>
       </div>
 
       {/* Main Interactive Recharts Section */}
-      <div className="relative z-10 bg-[#0a1020]/90 border border-slate-800 rounded-2xl p-4 sm:p-5">
+      <div
+        className="relative z-10 border rounded-2xl p-4 sm:p-5"
+        style={{
+          backgroundColor: 'var(--app-card-subtle)',
+          borderColor: 'var(--app-border)',
+        }}
+      >
         {activeView === 'types' && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
@@ -253,7 +288,7 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
                     : 'Click any category bar or action button to jump directly into the checker.'}
                 </p>
               </div>
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/50 self-start sm:self-auto">
+              <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-900/90 text-white !text-white border border-cyan-500/50 self-start sm:self-auto font-bold shadow-sm">
                 {isNe ? 'स्रोत: साइबर ब्युरो प्रतिवेदन' : 'Source: Cyber Bureau Reports'}
               </span>
             </div>
@@ -369,7 +404,7 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
                     : 'Incident frequency spikes sharply during festive shopping seasons (Dashain/Tihar) and holiday sales.'}
                 </p>
               </div>
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-800/50 self-start sm:self-auto font-medium">
+              <span className="text-[11px] px-2.5 py-1 rounded-full bg-rose-900 text-white !text-white border border-rose-500/50 self-start sm:self-auto font-bold shadow-sm">
                 {isNe ? 'चाडपर्वमा +४८% वृद्धि' : '+48% Festive Spike'}
               </span>
             </div>
