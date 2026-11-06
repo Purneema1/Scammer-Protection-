@@ -771,23 +771,23 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
             <button
               key={sample.id}
               onClick={() => handleSelectSample(sample)}
-              className="p-3.5 rounded-2xl bg-[#0f172a] hover:bg-[#142038] border border-slate-800 hover:border-cyan-500/50 text-left transition cursor-pointer flex flex-col justify-between gap-2.5 group"
+              className="p-3.5 rounded-2xl bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#142038] border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 text-left transition cursor-pointer flex flex-col justify-between gap-2.5 group shadow-sm"
             >
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/40 inline-block">
+                <span className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950/60 border border-cyan-300 dark:border-cyan-800/40 inline-block">
                   {isNe ? sample.categoryNe : sample.categoryEn}
                 </span>
-                <h5 className="text-xs font-bold text-white group-hover:text-cyan-300 transition">
+                <h5 className="text-xs font-bold text-slate-950 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition">
                   {isNe ? sample.titleNe : sample.titleEn}
                 </h5>
-                <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed font-normal">
                   {isNe ? sample.descriptionNe : sample.descriptionEn}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-800/60">
-                <span>{isNe ? 'नमुना स्क्रिनसट' : 'Mock Screenshot'}</span>
-                <span className="text-cyan-400 font-semibold group-hover:translate-x-0.5 transition">
+              <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800/60">
+                <span className="font-medium">{isNe ? 'नमुना स्क्रिनसट' : 'Mock Screenshot'}</span>
+                <span className="text-cyan-700 dark:text-cyan-400 font-bold group-hover:translate-x-0.5 transition">
                   {isNe ? 'प्रयोग गर्नुहोस् →' : 'Use sample →'}
                 </span>
               </div>

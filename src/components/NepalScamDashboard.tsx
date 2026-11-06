@@ -135,9 +135,9 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
       {/* Header with Title and Mode Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-900/90 text-white border border-cyan-500/50 text-[11px] font-bold shadow-sm">
-            <span className="text-white !text-white">{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/90 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-500/50 text-[11px] font-bold shadow-sm">
+            <span className="text-cyan-950 dark:text-white font-bold">{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
           </div>
           <h2 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <span>
@@ -273,22 +273,22 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
       >
         {activeView === 'types' && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3">
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-slate-950 dark:text-white flex items-center gap-2">
                   <span>
                     {isNe
                       ? 'नेपालमा रिपोर्ट गरिएका ठगीका मुख्य प्रकारहरू (प्रतिशत र घटना सङ्ख्या)'
                       : 'Breakdown of Reported Scam Categories in Nepal'}
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                   {isNe
                     ? 'तलको बारमा क्लिक गरेर वा कार्ड छानेर सोझै सम्बन्धित जाँच टुलमा जान सक्नुहुन्छ।'
                     : 'Click any category bar or action button to jump directly into the checker.'}
                 </p>
               </div>
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-900/90 text-white !text-white border border-cyan-500/50 self-start sm:self-auto font-bold shadow-sm">
+              <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/90 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-500/50 self-start sm:self-auto font-bold shadow-sm">
                 {isNe ? 'स्रोत: साइबर ब्युरो प्रतिवेदन' : 'Source: Cyber Bureau Reports'}
               </span>
             </div>

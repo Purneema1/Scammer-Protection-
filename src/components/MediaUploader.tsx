@@ -56,19 +56,19 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   };
 
   return (
-    <div className={`rounded-3xl bg-[#0e1628] border border-slate-800 ${compact ? 'p-3 space-y-2.5' : 'p-4 space-y-3'}`}>
+    <div className={`rounded-3xl bg-white dark:bg-[#0e1628] border border-slate-200 dark:border-slate-800 shadow-sm ${compact ? 'p-3 space-y-2.5' : 'p-4 space-y-3'}`}>
       {/* Header Info */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-black text-white truncate" title={label}>
+        <span className="text-xs font-black text-slate-950 dark:text-white truncate" title={label}>
           {label}
         </span>
         <div className="flex items-center gap-1.5 shrink-0">
           {badge && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 font-bold">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950/80 border border-cyan-300 dark:border-cyan-800/60 text-cyan-950 dark:text-cyan-300 font-bold">
               {badge}
             </span>
           )}
-          {aspectHint && <span className="text-[10px] text-slate-400 font-mono">{aspectHint}</span>}
+          {aspectHint && <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono font-medium">{aspectHint}</span>}
         </div>
       </div>
 
@@ -127,12 +127,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-600/20 dark:hover:bg-cyan-600/30 text-cyan-950 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
           >
             {uploading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Upload className="w-3.5 h-3.5 text-cyan-400" />
+              <Upload className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-400" />
             )}
             <span>{isNe ? 'सिधै फोटो अपलोड' : 'Upload Direct Image'}</span>
           </button>
@@ -143,8 +143,8 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             onClick={() => setShowUrlInput(!showUrlInput)}
             className={`p-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
               showUrlInput
-                ? 'bg-slate-700 text-white border-slate-600'
-                : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600'
+                : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white border-slate-300 dark:border-slate-800'
             }`}
             title={isNe ? 'लिङ्क (URL) राख्नुहोस्' : 'Enter URL manually'}
           >
@@ -160,12 +160,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
               value={currentUrl}
               onChange={(e) => onUrlChange(e.target.value)}
               placeholder="https://..."
-              className="flex-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono outline-none focus:border-cyan-400"
+              className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-950 dark:text-white text-xs font-mono outline-none focus:border-cyan-400"
             />
             <button
               type="button"
               onClick={() => setShowUrlInput(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800 cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white bg-slate-200 dark:bg-slate-800 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>

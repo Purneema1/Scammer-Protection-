@@ -59,15 +59,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* 1. Language Switcher (नेपाली / English) */}
           <button
             onClick={onToggleLang}
-            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 transition-all active:scale-95 cursor-pointer shadow-sm select-none"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 text-xs font-bold text-slate-950 dark:text-slate-200 transition-all active:scale-95 cursor-pointer shadow-sm select-none"
             title={isNe ? 'Switch language to English' : 'नेपाली भाषामा बदल्नुहोस्'}
             aria-label="Switch Language"
           >
-            <span className={isNe ? 'text-cyan-400 font-extrabold' : 'text-slate-400'}>
+            <span className={isNe ? 'text-cyan-700 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-400'}>
               नेपाली
             </span>
-            <span className="text-slate-600 text-[10px]">/</span>
-            <span className={!isNe ? 'text-cyan-400 font-extrabold' : 'text-slate-400'}>
+            <span className="text-slate-400 dark:text-slate-600 text-[10px]">/</span>
+            <span className={!isNe ? 'text-cyan-700 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-400'}>
               EN
             </span>
           </button>

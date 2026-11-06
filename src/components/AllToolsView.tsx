@@ -276,7 +276,7 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
             <div
               key={tool.id}
               onClick={() => onNavigate(tool.id)}
-              className="rounded-2xl bg-[#0f172a] hover:bg-[#131f37] border border-slate-800 hover:border-cyan-500/60 shadow-lg transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden active:scale-[0.98]"
+              className="rounded-2xl bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#131f37] border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 shadow-lg transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden active:scale-[0.98]"
             >
               {/* Clean, unobstructed high-definition photo without icon overlays */}
               <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-900">
@@ -286,9 +286,9 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-100 filter brightness-105 contrast-105"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/70 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
                 <div className="absolute top-3 right-3">
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md text-cyan-300 border border-cyan-800/60 shadow-sm">
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md text-white border border-slate-700 shadow-sm">
                     {isNe ? tool.badgeNe : tool.badgeEn}
                   </span>
                 </div>
@@ -296,16 +296,15 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
 
               <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
+                  <h3 className="text-base font-bold text-slate-950 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition-colors">
                     {isNe ? tool.titleNe : tool.titleEn}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed line-clamp-2">
                     {isNe ? tool.descNe : tool.descEn}
                   </p>
                 </div>
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-cyan-400 group-hover:text-cyan-300">
-                  <span>{isNe ? '१-क्लिकमा खोल्नुहोस्' : 'Open in 1 Click'}</span>
-                  
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-cyan-700 dark:text-cyan-400 group-hover:text-cyan-800 dark:group-hover:text-cyan-300">
+                  <span>{isNe ? '१-क्लिकमा खोल्नुहोस् →' : 'Open in 1 Click →'}</span>
                 </div>
               </div>
             </div>
@@ -315,7 +314,7 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
         {/* Citizen Account Quick Card */}
         <div
           onClick={() => onOpenAuth('signin')}
-          className="rounded-2xl bg-[#0f172a] hover:bg-[#131f37] border border-cyan-800/40 hover:border-cyan-400/80 shadow-lg transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden active:scale-[0.98]"
+          className="rounded-2xl bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#131f37] border border-slate-200 dark:border-cyan-800/40 hover:border-cyan-400/80 shadow-lg transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden active:scale-[0.98]"
         >
           <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-900">
             <img
@@ -324,29 +323,28 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-100 filter brightness-105 contrast-105"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/70 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
             <div className="absolute top-3 right-3">
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md text-cyan-300 border border-cyan-800/60 shadow-sm">
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md text-white border border-slate-700 shadow-sm">
                 {currentUser ? (isNe ? 'खाता सक्रिय' : 'Logged In') : (isNe ? 'नागरिक खाता' : 'Citizen Portal')}
               </span>
             </div>
           </div>
           <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
+              <h3 className="text-base font-bold text-slate-950 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition-colors">
                 {currentUser
                   ? (isNe ? `मेरो खाता (${currentUser.name})` : `My Account (${currentUser.name})`)
                   : (isNe ? 'नागरिक खाता (Sign In / Register)' : 'Citizen Account')}
               </h3>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed line-clamp-2">
                 {isNe
                   ? 'सुरक्षा स्क्यान इतिहास हेर्नुहोस्, पासवर्ड रिसेट गर्नुहोस् वा नयाँ खाता खोल्नुहोस्।'
                   : 'Track your safety scan history, reset password, or sign up for free.'}
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-cyan-400 group-hover:text-cyan-300">
-              <span>{currentUser ? (isNe ? 'खाता हेर्नुहोस्' : 'Manage') : (isNe ? 'साइन इन / दर्ता' : 'Sign In')}</span>
-              
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-cyan-700 dark:text-cyan-400 group-hover:text-cyan-800 dark:group-hover:text-cyan-300">
+              <span>{currentUser ? (isNe ? 'खाता हेर्नुहोस् →' : 'Manage →') : (isNe ? 'साइन इन / दर्ता →' : 'Sign In →')}</span>
             </div>
           </div>
         </div>
@@ -354,7 +352,7 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
         {/* Customer Feedback Card */}
         <div
           onClick={() => onOpenFeedback('All Tools View')}
-          className="rounded-2xl bg-[#0f172a] hover:bg-[#131f37] border border-amber-900/40 hover:border-amber-500/60 shadow-lg transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden active:scale-[0.98]"
+          className="rounded-2xl bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#131f37] border border-slate-200 dark:border-amber-900/40 hover:border-amber-500/60 shadow-lg transition-all duration-150 cursor-pointer group flex flex-col justify-between overflow-hidden active:scale-[0.98]"
         >
           <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-900">
             <img
@@ -363,7 +361,7 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-100 filter brightness-105 contrast-105"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/70 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
             <div className="absolute top-3 right-3">
               <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md text-amber-300 border border-amber-800/60 shadow-sm">
                 {isNe ? 'प्रतिक्रिया' : 'Feedback'}
@@ -372,18 +370,17 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
           </div>
           <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
+              <h3 className="text-base font-bold text-slate-950 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
                 {isNe ? 'प्रतिक्रिया तथा नयाँ ठगी रिपोर्ट' : 'Feedback & Issue Reporting'}
               </h3>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed line-clamp-2">
                 {isNe
                   ? 'एपलाई ५-तारे रेटिङ दिनुहोस् वा नयाँ ठगीको समस्या दर्ता गर्नुहोस्।'
                   : 'Submit feedback ratings or report new suspicious tactics to our team.'}
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-amber-400 group-hover:text-amber-300">
-              <span>{isNe ? 'प्रतिक्रिया पठाउनुहोस्' : 'Submit Feedback'}</span>
-              
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 group-hover:text-amber-800 dark:group-hover:text-amber-300">
+              <span>{isNe ? 'प्रतिक्रिया पठाउनुहोस् →' : 'Submit Feedback →'}</span>
             </div>
           </div>
         </div>
