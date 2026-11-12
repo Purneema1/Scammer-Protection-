@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Scamly</title>
-    <meta name="description" content="Scamly: Scam detection, suspicious link inspector, emergency fraud rescue checklist, and cyber complaint generator in Nepal." />
-    <meta property="og:title" content="Scamly" />
-    <meta property="og:description" content="Scamly: Scam detection, suspicious link inspector, emergency fraud rescue checklist, and cyber complaint generator in Nepal." />
+    <title>Scam Protection AI (ठगी सुरक्षा)</title>
+    <meta name="description" content="AI-powered scam detection, suspicious link inspector, emergency fraud rescue checklist, and cyber complaint generator in Nepali and English." />
+    <meta property="og:title" content="Scam Protection AI (ठगी सुरक्षा)" />
+    <meta property="og:description" content="AI-powered scam detection, suspicious link inspector, emergency fraud rescue checklist, and cyber complaint generator in Nepali and English." />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#0b1220" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -24,30 +24,151 @@
     <script>
       // Suppress Vite dev server WebSocket disconnect notifications in cloud iframe preview
       (function() {
+        var origConsoleError = console.error;
+        console.error = function() {
+          var str = '';
+          for (var i = 0; i < arguments.length; i++) {
+            var a = arguments[i];
+            str += ' ' + (a && (a.stack || a.message || String(a)) || '');
+          }
+          if (/websocket/i.test(str) || /@vite\/client/i.test(str) || /closed without opened/i.test(str)) {
+            return;
+          }
+          return origConsoleError.apply(console, arguments);
+        };
+
+        var origConsoleWarn = console.warn;
+        console.warn = function() {
+          var str = '';
+          for (var i = 0; i < arguments.length; i++) {
+            var a = arguments[i];
+            str += ' ' + (a && (a.stack || a.message || String(a)) || '');
+          }
+          if (/websocket/i.test(str) || /@vite\/client/i.test(str) || /closed without opened/i.test(str)) {
+            return;
+          }
+          return origConsoleWarn.apply(console, arguments);
+        };
+
         var origOnError = window.onerror;
         window.onerror = function(msg, url, lineNo, columnNo, error) {
           var str = (msg || '') + ' ' + (error ? (error.stack || error.message || '') : '');
-          if (/websocket/i.test(str) || /@vite\/client/i.test(str)) {
+          if (/websocket/i.test(str) || /@vite\/client/i.test(str) || /closed without opened/i.test(str)) {
             return true; // suppresses the error
           }
           if (origOnError) return origOnError.apply(this, arguments);
           return false;
         };
+
         window.addEventListener('error', function(event) {
           var text = (event.message || '') + ' ' + (event.error ? (event.error.stack || event.error.message || '') : '');
-          if (/websocket/i.test(text) || /@vite\/client/i.test(text)) {
+          if (/websocket/i.test(text) || /@vite\/client/i.test(text) || /closed without opened/i.test(text)) {
             event.stopImmediatePropagation();
             event.preventDefault();
             return true;
           }
         }, true);
+
         window.addEventListener('unhandledrejection', function(event) {
           var reason = '' + (event.reason ? (event.reason.stack || event.reason.message || event.reason) : '');
-          if (/websocket/i.test(reason) || /@vite\/client/i.test(reason)) {
+          if (/websocket/i.test(reason) || /@vite\/client/i.test(reason) || /closed without opened/i.test(reason)) {
             event.stopImmediatePropagation();
             event.preventDefault();
           }
         }, true);
+
+        // Safe WebSocket wrapper to swallow connection errors from @vite/client in cloud iframe proxy
+        if (typeof window !== 'undefined' && window.WebSocket) {
+          var NativeWS = window.WebSocket;
+
+          function createMockHmrSocket(url, protocols) {
+            var listeners = {};
+            var self = {
+              url: String(url || ''),
+              protocol: Array.isArray(protocols) ? protocols[0] : (protocols || 'vite-hmr'),
+              readyState: 1, // WebSocket.OPEN
+              CONNECTING: 0,
+              OPEN: 1,
+              CLOSING: 2,
+              CLOSED: 3,
+              binaryType: 'blob',
+              bufferedAmount: 0,
+              extensions: '',
+              onopen: null,
+              onclose: null,
+              onerror: null,
+              onmessage: null,
+              send: function() {},
+              close: function(code, reason) {
+                self.readyState = 3;
+                var evt = { type: 'close', code: code || 1000, reason: reason || '', wasClean: true };
+                if (typeof self.onclose === 'function') {
+                  try { self.onclose(evt); } catch (e) {}
+                }
+                var cbs = listeners['close'];
+                if (cbs) {
+                  cbs.forEach(function(cb) { try { cb(evt); } catch (e) {} });
+                }
+              },
+              addEventListener: function(type, listener) {
+                if (!listeners[type]) listeners[type] = [];
+                listeners[type].push(listener);
+                if (type === 'open') {
+                  setTimeout(function() {
+                    var evt = { type: 'open' };
+                    if (typeof self.onopen === 'function') {
+                      try { self.onopen(evt); } catch (e) {}
+                    }
+                    try { listener(evt); } catch (e) {}
+                  }, 0);
+                }
+              },
+              removeEventListener: function(type, listener) {
+                if (listeners[type]) {
+                  listeners[type] = listeners[type].filter(function(l) { return l !== listener; });
+                }
+              },
+              dispatchEvent: function(event) {
+                var cbs = listeners[event && event.type];
+                if (cbs) {
+                  cbs.forEach(function(cb) { try { cb(event); } catch (e) {} });
+                }
+                return true;
+              }
+            };
+            return self;
+          }
+
+          function SafeWebSocket(url, protocols) {
+            var urlStr = String(url || '');
+            var isHmr = protocols === 'vite-hmr' ||
+                        (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1) ||
+                        urlStr.indexOf('token=') !== -1 ||
+                        urlStr.indexOf('vite') !== -1 ||
+                        urlStr.indexOf('/@vite') !== -1;
+
+            if (isHmr) {
+              return createMockHmrSocket(url, protocols);
+            }
+
+            try {
+              var ws = protocols !== undefined ? new NativeWS(url, protocols) : new NativeWS(url);
+              ws.addEventListener('error', function(e) {
+                if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+              });
+              return ws;
+            } catch (err) {
+              return createMockHmrSocket(url, protocols);
+            }
+          }
+
+          SafeWebSocket.prototype = NativeWS.prototype;
+          SafeWebSocket.CONNECTING = NativeWS.CONNECTING || 0;
+          SafeWebSocket.OPEN = NativeWS.OPEN || 1;
+          SafeWebSocket.CLOSING = NativeWS.CLOSING || 2;
+          SafeWebSocket.CLOSED = NativeWS.CLOSED || 3;
+          window.WebSocket = SafeWebSocket;
+        }
       })();
     </script>
   </head>

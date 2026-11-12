@@ -283,16 +283,16 @@ export const EmergencyRescue: React.FC<EmergencyRescueProps> = ({
       </div>
 
       {/* Recovery Scam Warning Box - Prominent */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-rose-100 dark:bg-rose-950/80 border-2 border-rose-500 shadow-xl">
+      <div className="p-4 sm:p-5 rounded-3xl bg-rose-100 dark:bg-rose-950/90 border-2 border-rose-500 shadow-xl">
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-2xl bg-rose-200 dark:bg-rose-900/60 border border-rose-400 dark:border-rose-700 shrink-0">
             <AlertOctagon className="w-6 h-6 sm:w-7 sm:h-7 text-rose-800 dark:text-rose-200" />
           </div>
           <div>
-            <h3 className="text-sm sm:text-base font-black text-rose-950 dark:text-white uppercase tracking-wide">
+            <h3 className="text-sm sm:text-base font-black text-rose-900 dark:text-rose-200 uppercase tracking-wide">
               {currentT.recoveryScamAlertTitle}
             </h3>
-            <p className="text-xs sm:text-sm text-rose-950 dark:text-white mt-1 leading-relaxed font-bold">
+            <p className="text-xs sm:text-sm text-slate-950 dark:text-white mt-1 leading-relaxed font-bold">
               {currentT.recoveryScamAlertDesc}
             </p>
           </div>

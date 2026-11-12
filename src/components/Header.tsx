@@ -63,11 +63,11 @@ export const Header: React.FC<HeaderProps> = ({
             title={isNe ? 'Switch language to English' : 'नेपाली भाषामा बदल्नुहोस्'}
             aria-label="Switch Language"
           >
-            <span className={isNe ? 'text-cyan-700 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-400'}>
+            <span className={isNe ? 'text-cyan-800 dark:text-cyan-300 font-extrabold' : 'text-slate-700 dark:text-slate-400 font-bold'}>
               नेपाली
             </span>
             <span className="text-slate-400 dark:text-slate-600 text-[10px]">/</span>
-            <span className={!isNe ? 'text-cyan-700 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-400'}>
+            <span className={!isNe ? 'text-cyan-800 dark:text-cyan-300 font-extrabold' : 'text-slate-700 dark:text-slate-400 font-bold'}>
               EN
             </span>
           </button>

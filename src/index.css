@@ -83,10 +83,25 @@
   color: #ffffff !important;
 }
 
-/* All generic text spans in dark mode (excluding light cyan action buttons/badges and colored alerts) */
-[data-theme-mode="dark"] span:not(button[class*="bg-cyan-"] *):not(button[class*="bg-yellow-"] *):not(a[class*="bg-cyan-"] *):not([class*="text-rose-"]):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-green-"]):not([class*="text-amber-"]):not([class*="text-yellow-"]):not([class*="text-cyan-"]):not([class*="text-blue-"]):not([class*="text-purple-"]):not([class*="text-teal-"]):not([class*="text-indigo-"]):not([class*="badge-"]):not([class*="bg-amber"]):not([class*="bg-emerald"]):not([class*="bg-cyan"]):not([class*="bg-rose"]):not([class*="bg-red"]),
-.dark span:not(button[class*="bg-cyan-"] *):not(button[class*="bg-yellow-"] *):not(a[class*="bg-cyan-"] *):not([class*="text-rose-"]):not([class*="text-red-"]):not([class*="text-emerald-"]):not([class*="text-green-"]):not([class*="text-amber-"]):not([class*="text-yellow-"]):not([class*="text-cyan-"]):not([class*="text-blue-"]):not([class*="text-purple-"]):not([class*="text-teal-"]):not([class*="text-indigo-"]):not([class*="badge-"]):not([class*="bg-amber"]):not([class*="bg-emerald"]):not([class*="bg-cyan"]):not([class*="bg-rose"]):not([class*="bg-red"]) {
+/* All generic text spans in dark mode (excluding light cyan action buttons/badges) */
+[data-theme-mode="dark"] span:not(button[class*="bg-cyan-"] *):not(button[class*="bg-yellow-"] *):not(a[class*="bg-cyan-"] *):not([class*="text-rose-400"]):not([class*="text-red-400"]):not([class*="text-emerald-400"]):not([class*="text-green-400"]):not([class*="text-amber-400"]):not([class*="text-yellow-400"]):not([class*="text-cyan-400"]):not([class*="text-blue-400"]),
+.dark span:not(button[class*="bg-cyan-"] *):not(button[class*="bg-yellow-"] *):not(a[class*="bg-cyan-"] *):not([class*="text-rose-400"]):not([class*="text-red-400"]):not([class*="text-emerald-400"]):not([class*="text-green-400"]):not([class*="text-amber-400"]):not([class*="text-yellow-400"]):not([class*="text-cyan-400"]):not([class*="text-blue-400"]) {
   color: #ffffff !important;
+}
+
+/* In dark mode, ultra-dark text helper classes like text-cyan-950, text-slate-950, text-rose-950 must be pure white */
+[data-theme-mode="dark"] [class*="text-cyan-950"]:not(button[class*="bg-cyan-"] *):not(a[class*="bg-cyan-"] *),
+[data-theme-mode="dark"] [class*="text-slate-950"]:not(button[class*="bg-cyan-"] *):not(a[class*="bg-cyan-"] *),
+[data-theme-mode="dark"] [class*="text-rose-950"],
+[data-theme-mode="dark"] [class*="text-emerald-950"],
+[data-theme-mode="dark"] [class*="text-blue-950"],
+.dark [class*="text-cyan-950"]:not(button[class*="bg-cyan-"] *):not(a[class*="bg-cyan-"] *),
+.dark [class*="text-slate-950"]:not(button[class*="bg-cyan-"] *):not(a[class*="bg-cyan-"] *),
+.dark [class*="text-rose-950"],
+.dark [class*="text-emerald-950"],
+.dark [class*="text-blue-950"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* Input fields, textareas, selects in dark mode */
@@ -137,25 +152,41 @@
 /* UNIVERSAL CONTRAST: ALL DARK BACKGROUNDS GET PURE WHITE TEXT       */
 /* ================================================================== */
 [class*="bg-black"],
-[class*="bg-black"] *:not(button.bg-cyan-500 *):not(button.bg-cyan-400 *),
+[class*="bg-black"] *:not(button[class*="bg-cyan-"] *):not(button[class*="bg-yellow-"] *):not(a[class*="bg-cyan-"] *),
 [class*="bg-slate-950"],
-[class*="bg-slate-950"] *:not(button.bg-cyan-500 *):not(button.bg-cyan-400 *),
+[class*="bg-slate-950"] *:not(button[class*="bg-cyan-"] *):not(button[class*="bg-yellow-"] *):not(a[class*="bg-cyan-"] *),
 [data-theme-mode="dark"] [class*="bg-cyan-950"],
-[data-theme-mode="dark"] [class*="bg-cyan-950"] *,
+[data-theme-mode="dark"] [class*="bg-cyan-950"] *:not(button[class*="bg-cyan-"] *),
+[data-theme-mode="dark"] [class*="bg-cyan-900"],
+[data-theme-mode="dark"] [class*="bg-cyan-900"] *:not(button[class*="bg-cyan-"] *),
 .dark [class*="bg-cyan-950"],
-.dark [class*="bg-cyan-950"] *,
+.dark [class*="bg-cyan-950"] *:not(button[class*="bg-cyan-"] *),
+.dark [class*="bg-cyan-900"],
+.dark [class*="bg-cyan-900"] *:not(button[class*="bg-cyan-"] *),
 [data-theme-mode="dark"] [class*="bg-emerald-950"],
 [data-theme-mode="dark"] [class*="bg-emerald-950"] *,
+[data-theme-mode="dark"] [class*="bg-emerald-900"],
+[data-theme-mode="dark"] [class*="bg-emerald-900"] *,
 .dark [class*="bg-emerald-950"],
 .dark [class*="bg-emerald-950"] *,
+.dark [class*="bg-emerald-900"],
+.dark [class*="bg-emerald-900"] *,
 [data-theme-mode="dark"] [class*="bg-rose-950"],
 [data-theme-mode="dark"] [class*="bg-rose-950"] *,
+[data-theme-mode="dark"] [class*="bg-rose-900"],
+[data-theme-mode="dark"] [class*="bg-rose-900"] *,
 .dark [class*="bg-rose-950"],
 .dark [class*="bg-rose-950"] *,
+.dark [class*="bg-rose-900"],
+.dark [class*="bg-rose-900"] *,
 [data-theme-mode="dark"] [class*="bg-blue-950"],
 [data-theme-mode="dark"] [class*="bg-blue-950"] *,
+[data-theme-mode="dark"] [class*="bg-blue-900"],
+[data-theme-mode="dark"] [class*="bg-blue-900"] *,
 .dark [class*="bg-blue-950"],
 .dark [class*="bg-blue-950"] *,
+.dark [class*="bg-blue-900"],
+.dark [class*="bg-blue-900"] *,
 [data-theme-mode="dark"] [class*="bg-purple-950"],
 [data-theme-mode="dark"] [class*="bg-purple-950"] *,
 .dark [class*="bg-purple-950"],
@@ -163,6 +194,7 @@
 .badge-dark,
 .badge-dark * {
   color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* ================================================================== */
@@ -338,20 +370,28 @@
 /* ================================================================== */
 /* CRITICAL: ON LIGHT BUTTONS (cyan, yellow, white), TEXT IS ALWAYS PURE BLACK */
 /* ================================================================== */
-button[class*="bg-cyan-400"],
-button[class*="bg-cyan-500"],
+button[class*="bg-cyan-"],
+button[class*="bg-cyan-"] *,
 button[class*="bg-yellow-"],
+button[class*="bg-yellow-"] *,
 button[class*="bg-amber-400"],
+button[class*="bg-amber-400"] *,
+button[class*="bg-amber-500"],
+button[class*="bg-amber-500"] *,
 button[class*="bg-white"],
-button.bg-cyan-400,
-button.bg-cyan-500,
-button.bg-cyan-400 *,
-button.bg-cyan-500 *,
-a.bg-cyan-400,
-a.bg-cyan-500,
-a.bg-cyan-400 *,
-a.bg-cyan-500 * {
+button[class*="bg-white"] *,
+a[class*="bg-cyan-"],
+a[class*="bg-cyan-"] *,
+.btn-cyan,
+.btn-cyan *,
+[data-theme-mode] button[class*="bg-cyan-"],
+[data-theme-mode] button[class*="bg-cyan-"] *,
+.dark button[class*="bg-cyan-"],
+.dark button[class*="bg-cyan-"] *,
+.light button[class*="bg-cyan-"],
+.light button[class*="bg-cyan-"] * {
   color: #020617 !important;
+  -webkit-text-fill-color: #020617 !important;
   font-weight: 800 !important;
 }
 

@@ -216,7 +216,7 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
                 : 'Open any tool in a single click for instant fraud detection and expert advice.'}
             </p>
           </div>
-          <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-cyan-100 dark:bg-cyan-900 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-500/60 self-start sm:self-auto shrink-0 shadow-sm">
+          <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-700 self-start sm:self-auto shrink-0 shadow-sm">
             <span className="text-cyan-950 dark:text-white font-black">
               {isNe ? `${toNepaliDigits(filteredTools.length)} वटा सेवाहरू उपलब्ध` : `${filteredTools.length} Tools Available`}
             </span>
@@ -254,11 +254,11 @@ export const AllToolsView: React.FC<AllToolsViewProps> = ({
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer active:scale-95 shrink-0 ${
                 activeCategory === cat.id
-                  ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20 border border-cyan-400'
-                  : 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-xs'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20 border border-cyan-400 btn-cyan'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 text-slate-950 dark:text-white border border-slate-300 dark:border-slate-800 dark:hover:bg-slate-800 shadow-xs'
               }`}
             >
-              <span className={`font-bold ${activeCategory === cat.id ? 'text-slate-950' : 'text-slate-950 dark:text-white'}`}>
+              <span className={`font-bold ${activeCategory === cat.id ? 'text-slate-950 font-black' : 'text-slate-950 dark:text-white'}`}>
                 {isNe ? cat.labelNe : cat.labelEn}
               </span>
             </button>

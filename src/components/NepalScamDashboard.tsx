@@ -135,18 +135,18 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
       {/* Header with Title and Mode Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/90 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-500/50 text-[11px] font-bold shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 border border-cyan-300 dark:border-cyan-700 text-[11px] font-bold shadow-sm">
             <span className="text-cyan-950 dark:text-white font-bold">{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
           </div>
-          <h2 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-lg sm:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
             <span>
               {isNe
                 ? 'नेपालमा साइबर ठगीको प्रवृत्ति र तथ्याङ्क'
                 : 'Scam Trends & Threat Statistics in Nepal'}
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-2xl leading-relaxed">
             {isNe
               ? 'नेपाल प्रहरी साइबर ब्युरो र जनउजुरी विश्लेषणमा आधारित—नेपालमा सबैभन्दा बढी सक्रिय ठगीका प्रकार र मासिक घटना दरको सिंहावलोकन।'
               : 'Grounded in Nepal Police Cyber Bureau data and victim reports. Real trends, frequency spikes, and primary fraud channels.'}
@@ -288,8 +288,8 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
                     : 'Click any category bar or action button to jump directly into the checker.'}
                 </p>
               </div>
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/90 text-cyan-950 dark:text-white border border-cyan-300 dark:border-cyan-500/50 self-start sm:self-auto font-bold shadow-sm">
-                {isNe ? 'स्रोत: साइबर ब्युरो प्रतिवेदन' : 'Source: Cyber Bureau Reports'}
+              <span className="text-[11px] px-2.5 py-1 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 border border-cyan-300 dark:border-cyan-700 self-start sm:self-auto font-bold shadow-sm">
+                <span className="text-cyan-950 dark:text-white font-bold">{isNe ? 'स्रोत: साइबर ब्युरो प्रतिवेदन' : 'Source: Cyber Bureau Reports'}</span>
               </span>
             </div>
 

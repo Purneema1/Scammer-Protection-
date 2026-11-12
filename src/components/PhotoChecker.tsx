@@ -572,9 +572,9 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
     <div className="space-y-6">
       {/* Title & Introduction */}
       <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-100 dark:bg-cyan-950/80 border border-cyan-300 dark:border-cyan-800/60 text-cyan-950 dark:text-cyan-300 shadow-sm">
-          <Camera className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-400" />
-          <span className="text-cyan-950 dark:text-cyan-200 font-bold">{isNe ? 'मल्टिमोडल एआई सुरक्षा' : 'Multimodal Vision Defense'}</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 border border-cyan-300 dark:border-cyan-700 shadow-sm">
+          <Camera className="w-3.5 h-3.5 text-cyan-800 dark:text-cyan-300" />
+          <span className="text-cyan-950 dark:text-white font-bold">{isNe ? 'मल्टिमोडल एआई सुरक्षा' : 'Multimodal Vision Defense'}</span>
         </div>
         <h3 className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white">
           {currentT.photoTitle}
@@ -787,7 +787,7 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
 
               <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800/60">
                 <span className="font-medium">{isNe ? 'नमुना स्क्रिनसट' : 'Mock Screenshot'}</span>
-                <span className="text-cyan-700 dark:text-cyan-400 font-bold group-hover:translate-x-0.5 transition">
+                <span className="text-cyan-800 dark:text-cyan-300 font-extrabold group-hover:translate-x-0.5 transition">
                   {isNe ? 'प्रयोग गर्नुहोस् →' : 'Use sample →'}
                 </span>
               </div>

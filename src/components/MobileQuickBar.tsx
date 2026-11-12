@@ -45,11 +45,11 @@ export const MobileQuickBar: React.FC<MobileQuickBarProps> = ({
               onClick={() => onNavigate(item.id)}
               className={`px-3 py-2 rounded-xl border text-xs whitespace-nowrap shrink-0 transition-all cursor-pointer active:scale-95 shadow-sm font-bold ${
                 isActive
-                  ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md font-black'
-                  : 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md font-black btn-cyan'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-950 dark:text-white border-slate-300 dark:border-slate-800'
               }`}
             >
-              <span className={`font-bold ${isActive ? 'text-slate-950' : 'text-slate-950 dark:text-white'}`}>
+              <span className={`font-bold ${isActive ? 'text-slate-950 font-black' : 'text-slate-950 dark:text-white'}`}>
                 {isNe ? item.titleNe : item.titleEn}
               </span>
             </button>

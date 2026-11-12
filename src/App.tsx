@@ -735,18 +735,18 @@ export default function App() {
             <div className="p-4 rounded-2xl bg-white dark:bg-[#0e1628] border border-slate-200 dark:border-slate-800 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
                 onClick={() => navigateTo('home')}
-                className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 cursor-pointer transition-colors"
+                className="text-xs sm:text-sm font-extrabold text-cyan-800 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-cyan-200 cursor-pointer transition-colors"
               >
                 <span>{isNe ? '← गृहपृष्ठमा फर्कनुहोस् (Go back to Home)' : '← Return to Main Homepage'}</span>
               </button>
 
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-700 dark:text-slate-400 font-medium">
+                <span className="text-slate-800 dark:text-slate-300 font-semibold">
                   {isNe ? 'कुनै समस्या वा प्रश्न छ?' : 'Need immediate assistance?'}
                 </span>
                 <button
                   onClick={() => handleOpenFeedback(currentTool.titleEn)}
-                  className="text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 hover:underline cursor-pointer font-bold"
+                  className="text-cyan-800 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-cyan-200 hover:underline cursor-pointer font-extrabold"
                 >
                   {isNe ? 'हामीलाई बताउनुहोस्' : 'Send Feedback'}
                 </button>
