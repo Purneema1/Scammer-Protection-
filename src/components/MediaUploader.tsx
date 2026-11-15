@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, CheckCircle2, Loader2, Image as ImageIcon, Link as LinkIcon, X } from 'lucide-react';
 import { uploadFileToServer } from '../utils/uploadHelper';
 import { isValidImageFile } from '../utils/imageHelper';
@@ -26,7 +26,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [currentUrl]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,6 +46,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       setUploading(true);
       setUploadError(null);
       setUploadSuccess(false);
+      setImgError(false);
 
       const result = await uploadFileToServer(file);
       onUrlChange(result.url);
@@ -78,20 +84,17 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           compact ? 'h-28' : 'h-36'
         }`}
       >
-        {currentUrl ? (
+        {currentUrl && !imgError ? (
           <img
             src={currentUrl}
             alt={label}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                'https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=800&q=80';
-            }}
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-1 text-xs">
-            <ImageIcon className="w-6 h-6" />
-            <span>{isNe ? 'तस्विर छैन' : 'No Image'}</span>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950 text-slate-400 gap-1 text-xs px-3 text-center">
+            <ImageIcon className="w-6 h-6 text-cyan-400/70" />
+            <span>{isNe ? 'तस्विर लोड हुन सकेन वा छानिएको छैन' : 'No Image Selected'}</span>
           </div>
         )}
 
@@ -116,7 +119,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+          accept="image/*"
           className="hidden"
           onChange={handleFileSelect}
         />
@@ -127,12 +130,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-100 hover:bg-cyan-200 dark:bg-cyan-600/20 dark:hover:bg-cyan-600/30 text-cyan-950 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-400 text-xs font-black transition-all cursor-pointer active:scale-95 disabled:opacity-50 btn-cyan"
           >
             {uploading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Upload className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-400" />
+              <Upload className="w-3.5 h-3.5" />
             )}
             <span>{isNe ? 'सिधै फोटो अपलोड' : 'Upload Direct Image'}</span>
           </button>
@@ -158,7 +161,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             <input
               type="text"
               value={currentUrl}
-              onChange={(e) => onUrlChange(e.target.value)}
+              onChange={(e) => {
+                setImgError(false);
+                onUrlChange(e.target.value);
+              }}
               placeholder="https://..."
               className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-950 dark:text-white text-xs font-mono outline-none focus:border-cyan-400"
             />
@@ -172,7 +178,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           </div>
         )}
 
-        {uploadError && <p className="text-[11px] text-rose-400 font-medium">{uploadError}</p>}
+        {uploadError && <p className="text-[11px] text-rose-700 dark:text-rose-400 font-semibold">{uploadError}</p>}
       </div>
     </div>
   );

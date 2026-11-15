@@ -179,7 +179,7 @@ export const LinkChecker: React.FC<LinkCheckerProps> = ({ lang, onOpenRescue }) 
 
             <button
               onClick={handleResetNewCheck}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-400 transition-all cursor-pointer active:scale-95 btn-cyan"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>{currentT.checkAnotherLink}</span>

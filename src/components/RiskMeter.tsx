@@ -208,9 +208,9 @@ export const RiskMeter: React.FC<RiskMeterProps> = ({
             {isNe ? 'ठगी जोखिम स्कोर (Scam Risk Score)' : 'Scam Risk Score (0–100 Gauge)'}
           </span>
 
-          <div className="w-full max-w-[230px]">
+          <div className="w-full max-w-[240px]">
             <svg
-              viewBox="0 0 240 136"
+              viewBox="0 0 240 140"
               className="w-full h-auto overflow-visible"
               role="img"
               aria-label={`Scam Risk Score: ${clampedScore} out of 100 (${config.title})`}
@@ -241,6 +241,25 @@ export const RiskMeter: React.FC<RiskMeterProps> = ({
                 strokeLinecap="round"
               />
 
+              {/* Calibrated Scale Ticks (0, 25, 50, 75, 100) */}
+              {[0, 25, 50, 75, 100].map((tick) => {
+                const outer = getArcPoint(cx, cy, r + 11, tick);
+                const inner = getArcPoint(cx, cy, r + 6, tick);
+                return (
+                  <line
+                    key={tick}
+                    x1={inner.x}
+                    y1={inner.y}
+                    x2={outer.x}
+                    y2={outer.y}
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    className="text-slate-400 dark:text-slate-600"
+                  />
+                );
+              })}
+
               {/* Active Risk Progress Arc */}
               <path
                 d={describeArc(cx, cy, r, 0, 100)}
@@ -255,7 +274,24 @@ export const RiskMeter: React.FC<RiskMeterProps> = ({
                 }}
               />
 
-              {/* Gauge Marker Indicator */}
+              {/* Gauge Needle & Marker Indicator */}
+              {(() => {
+                const needleTip = getArcPoint(cx, cy, r - 12, clampedScore);
+                const needleBase = getArcPoint(cx, cy, r - 24, clampedScore);
+                return (
+                  <line
+                    x1={needleBase.x}
+                    y1={needleBase.y}
+                    x2={needleTip.x}
+                    y2={needleTip.y}
+                    stroke={config.trackActiveHex}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    style={{ transition: 'all 700ms cubic-bezier(0.16, 1, 0.3, 1)' }}
+                  />
+                );
+              })()}
+
               <circle
                 cx={marker.x}
                 cy={marker.y}
@@ -290,7 +326,7 @@ export const RiskMeter: React.FC<RiskMeterProps> = ({
               {/* Base Scale Anchors */}
               <text
                 x={cx - r}
-                y={cy + 19}
+                y={cy + 20}
                 textAnchor="middle"
                 fill="currentColor"
                 className="text-emerald-700 dark:text-emerald-400 font-bold text-[11px] tabular-nums"
@@ -299,7 +335,7 @@ export const RiskMeter: React.FC<RiskMeterProps> = ({
               </text>
               <text
                 x={cx}
-                y={cy - r - 14}
+                y={cy - r - 16}
                 textAnchor="middle"
                 fill="currentColor"
                 className="text-amber-700 dark:text-amber-400 font-bold text-[11px] tabular-nums"
@@ -308,7 +344,7 @@ export const RiskMeter: React.FC<RiskMeterProps> = ({
               </text>
               <text
                 x={cx + r}
-                y={cy + 19}
+                y={cy + 20}
                 textAnchor="middle"
                 fill="currentColor"
                 className="text-rose-700 dark:text-rose-400 font-bold text-[11px] tabular-nums"

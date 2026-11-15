@@ -34,17 +34,19 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 /**
- * Upload a local file (image or video) directly to the server
+ * Upload a local file (image or video) directly to the server, with automatic
+ * client-side fallback for images when running on static hosting without /api/upload.
  */
 export async function uploadFileToServer(file: File): Promise<UploadResult> {
   let fileData: string;
   let mimeType = file.type || 'application/octet-stream';
   let fileName = file.name || 'file';
+  const isImage = isValidImageFile(file);
 
-  // Automatically optimize images so 15MB phone snapshots upload in ~100ms
-  if (isValidImageFile(file)) {
+  // Automatically optimize images so 15MB phone snapshots upload fast & fit storage limits
+  if (isImage) {
     try {
-      const optimized = await optimizeImageForAnalysis(file);
+      const optimized = await optimizeImageForAnalysis(file, 1400, 0.85);
       fileData = optimized.dataUrl;
       mimeType = optimized.mimeType;
       if (!fileName.toLowerCase().endsWith('.jpg') && !fileName.toLowerCase().endsWith('.jpeg')) {
@@ -57,29 +59,67 @@ export async function uploadFileToServer(file: File): Promise<UploadResult> {
     fileData = await readFileAsDataUrl(file);
   }
 
-  const response = await fetch('/api/upload', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  try {
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName,
+        fileData,
+        mimeType,
+      }),
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    if (response.ok && contentType.includes('application/json')) {
+      const data = await response.json();
+      if (data?.success && data?.url) {
+        return data;
+      }
+    }
+  } catch {
+    // Network or server unavailable — fall through to client-side fallback
+  }
+
+  // Graceful fallback for images on static deployments (e.g. Vercel 404) or offline environments
+  if (isImage) {
+    let fallbackDataUrl = fileData;
+    // Keep localStorage payload compact if the image is still large
+    if (fallbackDataUrl.length > 350_000 && mimeType !== 'image/svg+xml') {
+      try {
+        const recompressed = await optimizeImageForAnalysis(file, 1080, 0.72);
+        fallbackDataUrl = recompressed.dataUrl;
+        mimeType = recompressed.mimeType;
+      } catch {
+        // Keep initial dataUrl
+      }
+    }
+
+    return {
+      success: true,
+      url: fallbackDataUrl,
       fileName,
-      fileData,
+      size: file.size || fallbackDataUrl.length,
       mimeType,
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Upload failed (${response.status}): ${errText}`);
+    };
   }
 
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.error || 'Upload error');
+  // Allow small audio/video clips (< 2.5MB) to fall back to Data URL too
+  if (file.size > 0 && file.size <= 2.5 * 1024 * 1024) {
+    return {
+      success: true,
+      url: fileData,
+      fileName,
+      size: file.size,
+      mimeType,
+    };
   }
 
-  return data;
+  throw new Error(
+    'फाइल अपलोड सर्भर उपलब्ध छैन। ठूलो भिडियोका लागि YouTube वा सिधै भिडियो URL राख्नुहोस्। (Upload endpoint unavailable; paste a YouTube or external media URL.)'
+  );
 }
 
 function toNepaliDigits(str: string): string {
