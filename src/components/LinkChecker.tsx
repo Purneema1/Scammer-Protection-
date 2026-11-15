@@ -20,6 +20,7 @@ import { analyzeLinkClient } from '../utils/localAnalyzer';
 import { extractDetailedAnalysisForLink } from '../utils/detailedAnalyzer';
 import { RiskMeter } from './RiskMeter';
 import { DetailedAnalysisCard } from './DetailedAnalysisCard';
+import { ShareButton } from './ShareButton';
 import { RecentChecksBar } from './RecentChecksBar';
 import {
   getRecentChecks,
@@ -160,7 +161,22 @@ export const LinkChecker: React.FC<LinkCheckerProps> = ({ lang, onOpenRescue }) 
             <span>{currentT.backToInput}</span>
           </button>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+            <ShareButton
+              lang={lang}
+              variant="subtle"
+              title={
+                isNe
+                  ? `Scamly लिंक सुरक्षा नतिजा: ${result.hostname}`
+                  : `Scamly Link Check: ${result.hostname}`
+              }
+              text={
+                isNe
+                  ? `वेबसाइट (${result.hostname}) जोखिम स्कोर: ${result.score}/100। अपरिचित लिंक खोल्नुअघि यहाँ सुरक्षित जाँच गर्नुहोस्:`
+                  : `Link (${result.hostname}) Scam Risk Score: ${result.score}/100. Inspect suspicious URLs before clicking:`
+              }
+            />
+
             <button
               onClick={handleResetNewCheck}
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 transition-all cursor-pointer active:scale-95"

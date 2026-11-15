@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   User,
+  UserPlus,
   Mail,
   Phone,
   Lock,
   Eye,
   EyeOff,
-  ShieldCheck,
   ArrowRight,
   Sparkles,
   KeyRound,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
 } from 'lucide-react';
 import { UserAccount, Language } from '../types';
 import { setStoredUser } from '../utils/auth';
@@ -54,8 +53,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  if (!isOpen) return null;
-
   const resetForm = () => {
     setName('');
     setEmail('');
@@ -67,7 +64,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccessMsg('');
     setGeneratedOtpHint(null);
     setForgotStep(1);
+    setShowPassword(false);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
+
+  if (!isOpen) return null;
 
   const handleSwitchMode = (newMode: 'signin' | 'signup' | 'forgot') => {
     resetForm();
@@ -243,25 +250,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-md bg-[#0f172a] border border-cyan-800/60 rounded-3xl shadow-2xl overflow-hidden p-6 text-slate-100 space-y-5">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-cyan-800/60 rounded-3xl shadow-2xl p-5 sm:p-6 text-slate-950 dark:text-slate-100 space-y-4">
         {/* Glow accent */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header & Close */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="relative z-10 flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 shadow-inner">
+            <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-800/60 shadow-inner">
               {mode === 'signin' && <User className="w-5 h-5" />}
-              {mode === 'signup' && <Sparkles className="w-5 h-5" />}
+              {mode === 'signup' && <UserPlus className="w-5 h-5" />}
               {mode === 'forgot' && <KeyRound className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-white">
+              <h3 className="text-base sm:text-lg font-bold text-slate-950 dark:text-white">
                 {mode === 'signin' && (isNe ? 'नागरिक / प्रयोगकर्ता लगइन' : 'Sign In to Account')}
-                {mode === 'signup' && (isNe ? 'नयाँ खाता खोल्नुहोस् (Sign Up)' : 'Create New Account')}
+                {mode === 'signup' && (isNe ? 'नयाँ खाता बनाउनुहोस्' : 'Create New Account')}
                 {mode === 'forgot' && (isNe ? 'पासवर्ड रिसेट (Forgot Password)' : 'Reset Your Password')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {isNe
                   ? 'सुरक्षा जाँच र उजुरी इतिहास सुरक्षित राख्न'
                   : 'Track your checks and fraud reports securely'}
@@ -270,12 +277,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+            aria-label={isNe ? 'बन्द गर्नुहोस्' : 'Close'}
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Mode Switcher Tabs: Sign In | Create New */}
+        {mode !== 'forgot' && (
+          <div
+            role="tablist"
+            aria-label={isNe ? 'खाता विकल्प' : 'Account Options'}
+            className="relative z-10 grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'signin'}
+              onClick={() => handleSwitchMode('signin')}
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                mode === 'signin'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-sm btn-cyan'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+              }`}
+            >
+              <User className="w-3.5 h-3.5 shrink-0" />
+              <span>{isNe ? 'साइन इन' : 'Sign In'}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'signup'}
+              onClick={() => handleSwitchMode('signup')}
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                mode === 'signup'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-sm btn-cyan'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5 shrink-0" />
+              <span>{isNe ? 'नयाँ खाता (Create New)' : 'Create New'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Feedback Alerts */}
         {errorMsg && (
@@ -356,15 +403,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            {/* Switch to Signup */}
-            <div className="text-center pt-2 text-xs text-slate-400">
-              <span>{isNe ? 'खाता छैन? ' : "Don't have an account? "}</span>
+            {/* Prominent Switch to Create New Account */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-center">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {isNe ? 'तपाईंसँग खाता छैन?' : "Don't have an account yet?"}
+              </p>
               <button
                 type="button"
                 onClick={() => handleSwitchMode('signup')}
-                className="text-cyan-400 font-bold hover:underline cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-800 border border-slate-300 dark:border-cyan-700/60 text-slate-950 dark:text-cyan-300 font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
               >
-                {isNe ? 'नयाँ खाता खोल्नुहोस् (Sign Up)' : 'Register Here'}
+                <UserPlus className="w-4 h-4 shrink-0" />
+                <span>{isNe ? 'नयाँ खाता बनाउनुहोस् (Create New Account)' : 'Create New Account (Sign Up)'}</span>
               </button>
             </div>
           </form>

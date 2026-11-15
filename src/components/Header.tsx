@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <button
               onClick={() => onOpenAuth && onOpenAuth('signin')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black shadow-md shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black shadow-md shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
               title={isNe ? 'साइन इन गर्नुहोस्' : 'Sign In'}
             >
               <span>{isNe ? 'साइन इन' : 'Sign In'}</span>

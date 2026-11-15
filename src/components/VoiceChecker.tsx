@@ -23,6 +23,7 @@ import {
 import { RiskMeter } from './RiskMeter';
 import { DetailedAnalysisCard } from './DetailedAnalysisCard';
 import { VoiceReaderButton } from './VoiceReaderButton';
+import { ShareButton } from './ShareButton';
 import { RecentChecksBar } from './RecentChecksBar';
 import {
   getRecentChecks,
@@ -554,8 +555,23 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
             </h3>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
             <VoiceReaderButton textToRead={spokenSummaryText} lang={lang} />
+
+            <ShareButton
+              lang={lang}
+              variant="subtle"
+              title={
+                isNe
+                  ? `Scamly आवाज जाँच: ${result.scamType}`
+                  : `Scamly Voice Scan: ${result.scamType}`
+              }
+              text={
+                isNe
+                  ? `आवाज/फोन कल जाँच नतिजा — जोखिम स्कोर: ${result.score}/100 (${result.scamType})। तपाईं पनि शंकास्पद कल वा सन्देश जाँच गर्नुहोस्:`
+                  : `Voice Call Scam Risk Score: ${result.score}/100 (${result.scamType}). Check suspicious calls and messages for free:`
+              }
+            />
 
             <button
               onClick={handleClear}
@@ -604,18 +620,11 @@ ${result.actionSteps.map((a) => `• ${a}`).join('\n')}`;
               </p>
             </div>
 
-            <div className="shrink-0 bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center min-w-[140px]">
+            <div className="shrink-0 bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center min-w-[160px]">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 {currentT.riskScore}
               </span>
-              <span
-                className={`text-4xl font-extrabold ${
-                  isHigh ? 'text-rose-400' : isCaution ? 'text-amber-400' : 'text-emerald-400'
-                }`}
-              >
-                {result.score}%
-              </span>
-              <RiskMeter score={result.score} level={result.riskLevel} lang={lang} />
+              <RiskMeter score={result.score} level={result.riskLevel} lang={lang} compact />
             </div>
           </div>
 

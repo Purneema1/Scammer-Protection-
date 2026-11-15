@@ -16,6 +16,7 @@ import {
 import { Language } from '../types';
 import { toNepaliDigits, formatNumber, formatPercent } from '../utils/numberFormat';
 import { BANNERS } from '../constants/toolImages';
+import { ShareButton } from './ShareButton';
 
 interface NepalScamDashboardProps {
   lang: Language;
@@ -133,11 +134,26 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
       <div className="absolute bottom-0 left-10 w-80 h-80 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header with Title and Mode Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 border border-cyan-300 dark:border-cyan-700 text-[11px] font-bold shadow-sm">
-            <span className="text-cyan-950 dark:text-white font-bold">{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 relative z-10">
+        <div className="space-y-1 flex-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-950 dark:text-cyan-100 border border-cyan-300 dark:border-cyan-700 text-[11px] font-bold shadow-sm">
+              <span className="text-cyan-950 dark:text-white font-bold">{isNe ? 'नेपाल साइबर अपराध विश्लेषण' : 'Nepal Cyber Intelligence Hub'}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
+            </div>
+            <div className="lg:hidden">
+              <ShareButton
+                lang={lang}
+                variant="primary"
+                label={isNe ? 'सेयर' : 'Share'}
+                title={isNe ? 'Scamly — नेपाल अनलाइन ठगी सुरक्षा पोर्टल' : 'Scamly — Nepal Scam Prevention Portal'}
+                text={
+                  isNe
+                    ? 'नेपालमा बढ्दो SMS, लिंक र अनलाइन सपिङ ठगीबाट बच्न यो निःशुल्क AI सुरक्षा पोर्टल प्रयोग गर्नुहोस्:'
+                    : 'Check suspicious messages, phishing links, and online shopping offers before sending money:'
+                }
+              />
+            </div>
           </div>
           <h2 className="text-lg sm:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
             <span>
@@ -153,38 +169,53 @@ export const NepalScamDashboard: React.FC<NepalScamDashboardProps> = ({
           </p>
         </div>
 
-        {/* View Switcher Pills - All 3 exactly identical in size */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-[#090f1d] border border-slate-800 rounded-xl w-full sm:w-[480px]">
-          <button
-            onClick={() => setActiveView('types')}
-            className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-              activeView === 'types'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                : 'text-slate-400 hover:text-white bg-slate-900/60'
-            }`}
-          >
-            <span className="truncate">{isNe ? 'ठगीका प्रकार' : 'Scam Types'}</span>
-          </button>
-          <button
-            onClick={() => setActiveView('monthly')}
-            className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-              activeView === 'monthly'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                : 'text-slate-400 hover:text-white bg-slate-900/60'
-            }`}
-          >
-            <span className="truncate">{isNe ? 'मासिक दर' : 'Monthly Frequency'}</span>
-          </button>
-          <button
-            onClick={() => setActiveView('channels')}
-            className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-              activeView === 'channels'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
-                : 'text-slate-400 hover:text-white bg-slate-900/60'
-            }`}
-          >
-            <span className="truncate">{isNe ? 'भुक्तानी माध्यम' : 'Payment Medium'}</span>
-          </button>
+        {/* View Switcher Pills + Desktop Share Action */}
+        <div className="flex flex-col items-stretch lg:items-end gap-2.5 shrink-0 w-full lg:w-auto">
+          <div className="hidden lg:flex items-center justify-end">
+            <ShareButton
+              lang={lang}
+              variant="primary"
+              label={isNe ? 'सेयर गर्नुहोस् (Share)' : 'Share Resources'}
+              title={isNe ? 'Scamly — नेपाल अनलाइन ठगी सुरक्षा पोर्टल' : 'Scamly — Nepal Scam Prevention Portal'}
+              text={
+                isNe
+                  ? 'नेपालमा बढ्दो SMS, लिंक र अनलाइन सपिङ ठगीबाट बच्न यो निःशुल्क AI सुरक्षा पोर्टल प्रयोग गर्नुहोस्:'
+                  : 'Check suspicious messages, phishing links, and online shopping offers before sending money:'
+              }
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-1 p-1 bg-[#090f1d] border border-slate-800 rounded-xl w-full sm:w-[480px]">
+            <button
+              onClick={() => setActiveView('types')}
+              className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                activeView === 'types'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                  : 'text-slate-400 hover:text-white bg-slate-900/60'
+              }`}
+            >
+              <span className="truncate">{isNe ? 'ठगीका प्रकार' : 'Scam Types'}</span>
+            </button>
+            <button
+              onClick={() => setActiveView('monthly')}
+              className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                activeView === 'monthly'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                  : 'text-slate-400 hover:text-white bg-slate-900/60'
+              }`}
+            >
+              <span className="truncate">{isNe ? 'मासिक दर' : 'Monthly Frequency'}</span>
+            </button>
+            <button
+              onClick={() => setActiveView('channels')}
+              className={`w-full py-2 px-2 text-center text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                activeView === 'channels'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                  : 'text-slate-400 hover:text-white bg-slate-900/60'
+              }`}
+            >
+              <span className="truncate">{isNe ? 'भुक्तानी माध्यम' : 'Payment Medium'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

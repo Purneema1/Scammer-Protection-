@@ -43,6 +43,7 @@ import { MobileQuickBar } from './components/MobileQuickBar';
 import { AllToolsView } from './components/AllToolsView';
 import { VideoCenter } from './components/VideoCenter';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { FAQSection } from './components/FAQSection';
 import { BANNERS, TOOL_PHOTOS } from './constants/toolImages';
 import { getAppMediaSettings, AppMediaSettings } from './utils/mediaStorage';
 import { getAppContentSettings, AppContentSettings } from './utils/contentStorage';
@@ -575,6 +576,13 @@ export default function App() {
                 </span>
               </div>
             </section>
+
+            {/* 6. FREQUENTLY ASKED QUESTIONS (FAQ) */}
+            <FAQSection
+              lang={lang}
+              onNavigate={navigateTo}
+              onOpenFeedback={handleOpenFeedback}
+            />
           </div>
         )}
 

@@ -25,6 +25,7 @@ import { analyzeShoppingScamClient } from '../utils/shoppingAnalyzer';
 import { RiskMeter } from './RiskMeter';
 import { DetailedAnalysisCard } from './DetailedAnalysisCard';
 import { VoiceReaderButton } from './VoiceReaderButton';
+import { ShareButton } from './ShareButton';
 import { RecentChecksBar } from './RecentChecksBar';
 import {
   getRecentChecks,
@@ -222,13 +223,28 @@ Disclaimer: ${result.disclaimer}`;
             <span>{currentT.backToInput}</span>
           </button>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
             {result && (
               <VoiceReaderButton
                 textToRead={`${result.summary}. ${result.warningSigns?.slice(0, 2).join('. ') || ''}. ${result.safeAlternatives?.[0] || ''}`}
                 lang={lang}
               />
             )}
+
+            <ShareButton
+              lang={lang}
+              variant="subtle"
+              title={
+                isNe
+                  ? `Scamly सपिङ जाँच: ${analyzedItem.productName}`
+                  : `Scamly Shopping Check: ${analyzedItem.productName}`
+              }
+              text={
+                isNe
+                  ? `अनलाइन सपिङ (${analyzedItem.productName}) जोखिम स्कोर: ${result.score}/100। अग्रिम पैसा पठाउनुअघि यहाँ अफर जाँच गर्नुहोस्:`
+                  : `Online deal (${analyzedItem.productName}) Scam Risk Score: ${result.score}/100. Verify online shopping offers before paying in advance:`
+              }
+            />
 
             <button
               onClick={handleReset}

@@ -23,6 +23,7 @@ import { extractDetailedAnalysisForMessage } from '../utils/detailedAnalyzer';
 import { RiskMeter } from './RiskMeter';
 import { DetailedAnalysisCard } from './DetailedAnalysisCard';
 import { VoiceReaderButton } from './VoiceReaderButton';
+import { ShareButton } from './ShareButton';
 import { RecentChecksBar } from './RecentChecksBar';
 import {
   getRecentChecks,
@@ -224,13 +225,28 @@ Disclaimer: ${result.disclaimer}`;
             <span>{currentT.backToInput}</span>
           </button>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
             {result && (
               <VoiceReaderButton
                 textToRead={`${result.summary}. ${result.warningSigns?.slice(0, 2).join('. ') || ''}. ${result.actionSteps?.[0] || ''}`}
                 lang={lang}
               />
             )}
+
+            <ShareButton
+              lang={lang}
+              variant="subtle"
+              title={
+                isNe
+                  ? `Scamly जाँच नतिजा: ${result.scamType}`
+                  : `Scamly Scan Alert: ${result.scamType}`
+              }
+              text={
+                isNe
+                  ? `शंकास्पद सन्देश जाँच नतिजा — जोखिम स्कोर: ${result.score}/100 (${result.scamType})। तपाईं पनि शंकास्पद SMS/लिंक जाँच गर्नुहोस्:`
+                  : `Message Scam Risk Score: ${result.score}/100 (${result.scamType}). Verify suspicious texts and links for free:`
+              }
+            />
 
             <button
               onClick={handleResetNewCheck}
